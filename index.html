@@ -389,6 +389,42 @@
         </main>
     </div>
 
+    <!-- Modal for Quick Promotion Configuration -->
+    <div id="promo-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h3><i class="fa-solid fa-tags text-primary"></i> Oferta Rápida</h3>
+                <button id="close-modal-btn" class="modal-close"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-small text-muted" style="margin-bottom: 16px;">Configura una promoción al vuelo para:<br><strong id="promo-modal-product-name" style="font-size: 16px; color: var(--text-main);">Alfajor</strong></p>
+                <input type="hidden" id="promo-modal-product-id">
+                
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="promo-modal-qty" class="form-label">Cantidad para la Oferta:</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="promo-modal-qty" min="1" placeholder="Ej. 2 (unidades)" style="width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: var(--border-radius-md); outline: none;">
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label for="promo-modal-price" class="form-label">Precio Especial Total ($):</label>
+                    <div class="input-wrapper">
+                        <input type="number" id="promo-modal-price" min="0" placeholder="Ej. 1000 (precio del pack)" style="width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: var(--border-radius-md); outline: none;">
+                    </div>
+                </div>
+                
+                <div style="font-size: 12px; color: var(--text-muted-dark); line-height: 1.4; margin-top: 10px;">
+                    * Deja los campos vacíos o haz clic en "Quitar Oferta" para eliminar la promoción de este producto.
+                </div>
+            </div>
+            <div class="modal-footer" style="display: flex; gap: 12px; margin-top: 24px;">
+                <button id="clear-promo-modal-btn" class="btn-danger" style="flex: 1; padding: 12px;">Quitar Oferta</button>
+                <button id="save-promo-modal-btn" class="btn-primary" style="flex: 1; padding: 12px;">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Logic Script -->
     <script src="app.js"></script>
 </body>

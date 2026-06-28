@@ -120,6 +120,34 @@ function init() {
         state.products = loadedProducts;
     }
 
+    // Migrate old var(--color-...) strings to hex values for offline visual correctness
+    const colorMap = {
+        'var(--color-blue)': '#3b82f6',
+        'var(--color-red)': '#ef4444',
+        'var(--color-pink)': '#ec4899',
+        'var(--color-white)': '#ffffff',
+        'var(--color-black)': '#27272a',
+        'var(--color-yellow)': '#f59e0b',
+        'var(--color-purple)': '#8b5cf6',
+        'var(--color-teal)': '#14b8a6',
+        'var(--color-rose)': '#f43f5e',
+        'var(--color-amber)': '#f59e0b',
+        'var(--color-violet)': '#8b5cf6',
+        'var(--color-indigo)': '#6366f1'
+    };
+
+    let needsSave = false;
+    state.products.forEach(p => {
+        if (p.color && colorMap[p.color]) {
+            p.color = colorMap[p.color];
+            needsSave = true;
+        }
+    });
+
+    if (needsSave) {
+        saveProductsToStorage();
+    }
+
     const storedHistory = localStorage.getItem('pos_history');
     if (storedHistory) {
         state.salesHistory = JSON.parse(storedHistory);
@@ -215,6 +243,73 @@ function init() {
     // History Actions
     elements.exportHistoryBtn.addEventListener('click', exportHistoryToCSV);
     elements.clearHistoryBtn.addEventListener('click', clearHistory);
+
+    // Setup Promo Modal Actions
+    document.getElementById('close-modal-btn').addEventListener('click', closePromoModal);
+    
+    document.getElementById('promo-modal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('promo-modal')) {
+            closePromoModal();
+        }
+    });
+
+    document.getElementById('clear-promo-modal-btn').addEventListener('click', () => {
+        const productId = document.getElementById('promo-modal-product-id').value;
+        const productIndex = state.products.findIndex(p => p.id === productId);
+        if (productIndex > -1) {
+            state.products[productIndex].promoQty = null;
+            state.products[productIndex].promoPrice = null;
+            saveProductsToStorage();
+            
+            // Also update cart if product is inside it
+            const cartItem = state.cart.find(item => item.product.id === productId);
+            if (cartItem) {
+                cartItem.product.promoQty = null;
+                cartItem.product.promoPrice = null;
+            }
+
+            renderProductGrid();
+            renderCart();
+            renderInventoryTable();
+            closePromoModal();
+            showToast('Oferta eliminada', 'info');
+        }
+    });
+
+    document.getElementById('save-promo-modal-btn').addEventListener('click', () => {
+        const productId = document.getElementById('promo-modal-product-id').value;
+        const qtyVal = parseInt(document.getElementById('promo-modal-qty').value) || null;
+        const priceVal = parseFloat(document.getElementById('promo-modal-price').value) || null;
+
+        if (qtyVal && !priceVal) {
+            showToast('Debes ingresar un precio especial para la oferta', 'warning');
+            return;
+        }
+        if (!qtyVal && priceVal) {
+            showToast('Debes ingresar la cantidad de unidades para la oferta', 'warning');
+            return;
+        }
+
+        const productIndex = state.products.findIndex(p => p.id === productId);
+        if (productIndex > -1) {
+            state.products[productIndex].promoQty = qtyVal;
+            state.products[productIndex].promoPrice = priceVal;
+            saveProductsToStorage();
+
+            // Also update cart if product is inside it
+            const cartItem = state.cart.find(item => item.product.id === productId);
+            if (cartItem) {
+                cartItem.product.promoQty = qtyVal;
+                cartItem.product.promoPrice = priceVal;
+            }
+
+            renderProductGrid();
+            renderCart();
+            renderInventoryTable();
+            closePromoModal();
+            showToast('Oferta guardada y aplicada', 'success');
+        }
+    });
 
     // Initial Renders
     renderProductGrid();
@@ -365,13 +460,21 @@ function renderProductGrid() {
                     </div>
                     ${promoHTML}
                 </div>
-                <span class="product-category-tag">${product.category === 'snack' ? 'Alfajor' : product.category}</span>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <button class="btn-card-promo" data-id="${product.id}" title="Oferta Rápida"><i class="fa-solid fa-tag"></i></button>
+                    <span class="product-category-tag">${product.category === 'snack' ? 'Alfajor' : product.category}</span>
+                </div>
             </div>
             <div class="product-card-bottom">
                 <span class="product-price">${formatCurrency(product.price)}</span>
                 <span class="stock-badge ${stockClass}">${stockText}</span>
             </div>
         `;
+
+        card.querySelector('.btn-card-promo').addEventListener('click', (e) => {
+            e.stopPropagation();
+            openPromoModal(product.id);
+        });
 
         card.addEventListener('click', () => {
             if (product.stock > 0) {
@@ -1068,6 +1171,23 @@ function exportHistoryToCSV() {
     link.click();
     document.body.removeChild(link);
     showToast('Historial exportado como CSV', 'success');
+}
+
+// LOGIC: Promo Modal operations
+function openPromoModal(productId) {
+    const product = state.products.find(p => p.id === productId);
+    if (!product) return;
+
+    document.getElementById('promo-modal-product-id').value = product.id;
+    document.getElementById('promo-modal-product-name').textContent = product.name;
+    document.getElementById('promo-modal-qty').value = product.promoQty || '';
+    document.getElementById('promo-modal-price').value = product.promoPrice || '';
+
+    document.getElementById('promo-modal').classList.remove('hidden');
+}
+
+function closePromoModal() {
+    document.getElementById('promo-modal').classList.add('hidden');
 }
 
 // Start the application
