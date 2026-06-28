@@ -1,12 +1,12 @@
 // Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
 const DEFAULT_PRODUCTS = [
-    { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: 'var(--color-blue)', promoQty: null, promoPrice: null },
-    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: 'var(--color-red)', promoQty: 2, promoPrice: 1200 },
-    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: 'var(--color-pink)', promoQty: 2, promoPrice: 1200 },
-    { id: '4', name: 'Alfajor Oreo', price: 800, stock: 15, category: 'snack', color: 'var(--color-white)', promoQty: null, promoPrice: null },
-    { id: '5', name: 'Alfajor Nutella', price: 800, stock: 15, category: 'snack', color: 'var(--color-black)', promoQty: null, promoPrice: null },
-    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: 'var(--color-yellow)', promoQty: 2, promoPrice: 1500 },
-    { id: '7', name: 'Alfajor Prestigio', price: 800, stock: 20, category: 'snack', color: 'var(--color-purple)', promoQty: null, promoPrice: null }
+    { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: '#3b82f6', promoQty: null, promoPrice: null },
+    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: '#ef4444', promoQty: 2, promoPrice: 1200 },
+    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: '#ec4899', promoQty: 2, promoPrice: 1200 },
+    { id: '4', name: 'Alfajor Oreo', price: 800, stock: 15, category: 'snack', color: '#ffffff', promoQty: null, promoPrice: null },
+    { id: '5', name: 'Alfajor Nutella', price: 800, stock: 15, category: 'snack', color: '#27272a', promoQty: null, promoPrice: null },
+    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: '#f59e0b', promoQty: 2, promoPrice: 1500 },
+    { id: '7', name: 'Alfajor Prestigio', price: 800, stock: 20, category: 'snack', color: '#8b5cf6', promoQty: null, promoPrice: null }
 ];
 
 // App State
@@ -359,7 +359,10 @@ function renderProductGrid() {
         card.innerHTML = `
             <div class="product-card-top">
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <span class="product-title">${product.name}</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${product.color || 'var(--color-teal)'}; border: ${product.color === '#ffffff' ? '1px solid rgba(0,0,0,0.3)' : 'none'}; display: inline-block; flex-shrink: 0;"></span>
+                        <span class="product-title">${product.name}</span>
+                    </div>
                     ${promoHTML}
                 </div>
                 <span class="product-category-tag">${product.category === 'snack' ? 'Alfajor' : product.category}</span>
@@ -393,10 +396,11 @@ function calculateCartTotals() {
         const qty = item.quantity;
         const promoQty = item.product.promoQty;
         const promoPrice = item.product.promoPrice;
+        const isPromoApplied = item.applyPromo !== false;
 
         subtotal += normalPrice * qty;
 
-        if (usePromos && promoQty && promoPrice && qty >= promoQty) {
+        if (usePromos && promoQty && promoPrice && qty >= promoQty && isPromoApplied) {
             const numPromos = Math.floor(qty / promoQty);
             const remainder = qty % promoQty;
             total += (numPromos * promoPrice) + (remainder * normalPrice);
@@ -429,7 +433,8 @@ function addProductToCart(productId) {
     } else {
         state.cart.push({
             product: { ...product },
-            quantity: 1
+            quantity: 1,
+            applyPromo: true
         });
     }
 
@@ -503,10 +508,26 @@ function renderCart() {
         let promoBadgeHTML = '';
 
         if (usePromos && item.product.promoQty && item.product.promoPrice && item.quantity >= item.product.promoQty) {
+            const isPromoApplied = item.applyPromo !== false;
             const numPromos = Math.floor(item.quantity / item.product.promoQty);
             const remainder = item.quantity % item.product.promoQty;
-            finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
-            promoBadgeHTML = `<span class="promo-badge" style="font-size: 9px; padding: 1px 6px; box-shadow: none; animation: none; margin-left: 6px;"><i class="fa-solid fa-tag"></i> Oferta</span>`;
+            
+            if (isPromoApplied) {
+                finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
+                promoBadgeHTML = `
+                    <label style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, var(--color-amber), var(--color-rose)); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; margin-left: 6px;">
+                        <input type="checkbox" class="item-promo-toggle" data-id="${item.product.id}" checked style="accent-color: var(--color-amber); width: 10px; height: 10px; cursor: pointer;">
+                        <span>Oferta</span>
+                    </label>
+                `;
+            } else {
+                promoBadgeHTML = `
+                    <label style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; margin-left: 6px;">
+                        <input type="checkbox" class="item-promo-toggle" data-id="${item.product.id}" style="accent-color: var(--color-amber); width: 10px; height: 10px; cursor: pointer;">
+                        <span>Aplicar Oferta</span>
+                    </label>
+                `;
+            }
         }
 
         itemRow.innerHTML = `
@@ -532,6 +553,18 @@ function renderCart() {
         itemRow.querySelector('.btn-qty-dec').addEventListener('click', () => updateCartQty(item.product.id, -1));
         itemRow.querySelector('.btn-qty-inc').addEventListener('click', () => updateCartQty(item.product.id, 1));
         itemRow.querySelector('.cart-item-remove').addEventListener('click', () => removeCartItem(item.product.id));
+
+        const promoChk = itemRow.querySelector('.item-promo-toggle');
+        if (promoChk) {
+            promoChk.addEventListener('change', (e) => {
+                const productId = e.target.getAttribute('data-id');
+                const cartItem = state.cart.find(item => item.product.id === productId);
+                if (cartItem) {
+                    cartItem.applyPromo = e.target.checked;
+                    renderCart();
+                }
+            });
+        }
 
         elements.cartItemsList.appendChild(itemRow);
     });

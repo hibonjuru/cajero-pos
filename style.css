@@ -1434,7 +1434,15 @@ input:checked + .slider:before {
         grid-template-columns: 1fr;
     }
     .checkout-section {
-        height: 600px;
+        height: auto !important;
+    }
+    .checkout-card {
+        height: auto !important;
+    }
+    .cart-items-container {
+        min-height: 120px;
+        max-height: 320px;
+        overflow-y: auto !important;
     }
     .inventory-layout {
         grid-template-columns: 1fr;
