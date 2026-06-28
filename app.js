@@ -452,18 +452,15 @@ function renderProductGrid() {
         }
 
         card.innerHTML = `
-            <div class="product-card-top">
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px;">
-                        <span style="width: 12px; height: 12px; border-radius: 50%; background-color: ${product.color || 'var(--color-teal)'}; border: ${product.color === '#ffffff' ? '1px solid rgba(0,0,0,0.3)' : 'none'}; display: inline-block; flex-shrink: 0;"></span>
-                        <span class="product-title">${product.name}</span>
-                    </div>
-                    ${promoHTML}
+            <div class="product-card-top" style="width: 100%; display: flex; justify-content: space-between; align-items: flex-start; gap: 4px;">
+                <div style="display: flex; align-items: flex-start; gap: 6px; flex-grow: 1; min-width: 0;">
+                    <span style="width: 10px; height: 10px; border-radius: 50%; background-color: ${product.color || 'var(--color-teal)'}; border: ${product.color === '#ffffff' ? '1px solid rgba(0,0,0,0.3)' : 'none'}; display: inline-block; flex-shrink: 0; margin-top: 4px;"></span>
+                    <span class="product-title" style="white-space: normal; word-break: break-word; overflow: visible; display: inline; font-size: 13px; font-weight: 600; line-height: 1.3;">${product.name}</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <button class="btn-card-promo" data-id="${product.id}" title="Oferta Rápida"><i class="fa-solid fa-tag"></i></button>
-                    <span class="product-category-tag">${product.category === 'snack' ? 'Alfajor' : product.category}</span>
-                </div>
+                <button class="btn-card-promo" data-id="${product.id}" title="Oferta Rápida" style="flex-shrink: 0;"><i class="fa-solid fa-tag"></i></button>
+            </div>
+            <div style="margin-top: 4px;">
+                ${promoHTML}
             </div>
             <div class="product-card-bottom">
                 <span class="product-price">${formatCurrency(product.price)}</span>

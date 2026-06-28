@@ -18,10 +18,10 @@
         <!-- Sidebar Navigation -->
         <aside class="sidebar">
             <div class="logo">
-                <div class="logo-icon">
-                    <i class="fa-solid fa-cash-register"></i>
+                <div class="logo-icon" style="background: linear-gradient(135deg, #d946ef, #8b5cf6); color: white;">
+                    <i class="fa-solid fa-cat"></i>
                 </div>
-                <h2>Smart<span>Cashier</span></h2>
+                <h2>Kuromi<span>POS 😈</span></h2>
             </div>
             
             <nav class="nav-menu">
@@ -40,7 +40,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <p>&copy; 2026 Smart Cashier</p>
+                <p>&copy; 2026 Kuromi POS</p>
                 <span class="status-badge"><span class="dot"></span> Online</span>
             </div>
         </aside>
@@ -69,17 +69,10 @@
                 <div class="terminal-layout">
                     <!-- Products Grid Section -->
                     <div class="products-section">
-                        <div class="search-bar-container">
-                            <div class="search-input-wrapper">
+                        <div class="search-bar-container" style="display: flex; gap: 12px; width: 100%;">
+                            <div class="search-input-wrapper" style="flex-grow: 1; width: 100%;">
                                 <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                                <input type="text" id="search-product" placeholder="Buscar producto por nombre o código...">
-                            </div>
-                            <div class="category-filters">
-                                <button class="filter-btn active" data-category="all">Todos</button>
-                                <button class="filter-btn" data-category="snack">Alfajores</button>
-                                <button class="filter-btn" data-category="bebida">Bebidas</button>
-                                <button class="filter-btn" data-category="comida">Comida</button>
-                                <button class="filter-btn" data-category="otros">Otros</button>
+                                <input type="text" id="search-product" placeholder="Buscar alfajor por nombre...">
                             </div>
                         </div>
 
@@ -230,41 +223,37 @@
                                     </div>
                                 </div>
 
-                                <div class="form-row-2">
-                                    <div class="form-group">
-                                        <label for="prod-category" class="form-label">Categoría</label>
-                                        <select id="prod-category">
-                                            <option value="snack">Alfajores</option>
-                                            <option value="bebida">Bebidas</option>
-                                            <option value="comida">Comida</option>
-                                            <option value="otros">Otros</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="prod-color" class="form-label">Color de Tarjeta</label>
-                                        <div class="color-picker-grid">
-                                            <label class="color-option color-blue active" title="Azul">
-                                                <input type="radio" name="prod-color" value="var(--color-blue)" checked>
-                                            </label>
-                                            <label class="color-option color-red" title="Rojo">
-                                                <input type="radio" name="prod-color" value="var(--color-red)">
-                                            </label>
-                                            <label class="color-option color-pink" title="Fucsia">
-                                                <input type="radio" name="prod-color" value="var(--color-pink)">
-                                            </label>
-                                            <label class="color-option color-white" title="Blanco">
-                                                <input type="radio" name="prod-color" value="var(--color-white)">
-                                            </label>
-                                            <label class="color-option color-black" title="Negro">
-                                                <input type="radio" name="prod-color" value="var(--color-black)">
-                                            </label>
-                                            <label class="color-option color-yellow" title="Amarillo">
-                                                <input type="radio" name="prod-color" value="var(--color-yellow)">
-                                            </label>
-                                            <label class="color-option color-purple" title="Morado">
-                                                <input type="radio" name="prod-color" value="var(--color-purple)">
-                                            </label>
-                                        </div>
+                                <div class="form-group" style="display: none;">
+                                    <label for="prod-category" class="form-label">Categoría</label>
+                                    <select id="prod-category">
+                                        <option value="snack" selected>Alfajores</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">Color de Tarjeta</label>
+                                    <div class="color-picker-grid">
+                                        <label class="color-option color-blue active" title="Azul">
+                                            <input type="radio" name="prod-color" value="#3b82f6" checked>
+                                        </label>
+                                        <label class="color-option color-red" title="Rojo">
+                                            <input type="radio" name="prod-color" value="#ef4444">
+                                        </label>
+                                        <label class="color-option color-pink" title="Fucsia">
+                                            <input type="radio" name="prod-color" value="#ec4899">
+                                        </label>
+                                        <label class="color-option color-white" title="Blanco">
+                                            <input type="radio" name="prod-color" value="#ffffff">
+                                        </label>
+                                        <label class="color-option color-black" title="Negro">
+                                            <input type="radio" name="prod-color" value="#27272a">
+                                        </label>
+                                        <label class="color-option color-yellow" title="Amarillo">
+                                            <input type="radio" name="prod-color" value="#f59e0b">
+                                        </label>
+                                        <label class="color-option color-purple" title="Morado">
+                                            <input type="radio" name="prod-color" value="#8b5cf6">
+                                        </label>
                                     </div>
                                 </div>
 

@@ -1,16 +1,16 @@
 /* CSS Variable declarations for theme */
 :root {
-    --bg-app: #090a0f;
-    --bg-sidebar: #10121d;
-    --bg-card: rgba(22, 26, 46, 0.65);
-    --bg-card-hover: rgba(28, 33, 58, 0.85);
-    --border-color: rgba(255, 255, 255, 0.08);
-    --border-hover: rgba(255, 255, 255, 0.15);
+    --bg-app: #0b0713;
+    --bg-sidebar: #120b1f;
+    --bg-card: rgba(25, 15, 41, 0.55);
+    --bg-card-hover: rgba(38, 23, 62, 0.75);
+    --border-color: rgba(217, 70, 239, 0.15);
+    --border-hover: rgba(217, 70, 239, 0.35);
     
-    /* Brand Colors */
-    --color-primary: #6366f1;
-    --color-primary-dark: #4f46e5;
-    --color-secondary: #00f2fe;
+    /* Brand Colors (Kuromi Theme) */
+    --color-primary: #d946ef;
+    --color-primary-dark: #c084fc;
+    --color-secondary: #a855f7;
     --color-blue: #3b82f6;
     --color-red: #ef4444;
     --color-pink: #ec4899;
@@ -23,12 +23,12 @@
     --color-success: #10b981;
     --color-danger: #ef4444;
     --color-warning: #f59e0b;
-    --color-info: #3b82f6;
+    --color-info: #a855f7;
 
     /* Text Colors */
     --text-main: #f3f4f6;
-    --text-muted: #9ca3af;
-    --text-muted-dark: #6b7280;
+    --text-muted: #c084fc;
+    --text-muted-dark: #704f98;
     
     /* Layout Constants */
     --sidebar-width: 260px;
@@ -39,8 +39,8 @@
     --transition-fast: 0.2s ease;
     --transition-normal: 0.3s ease;
     
-    --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+    --shadow-main: 0 10px 30px -10px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 20px rgba(217, 70, 239, 0.25);
 }
 
 /* Base reset and styling */
