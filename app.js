@@ -1,11 +1,11 @@
 // Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
 const DEFAULT_PRODUCTS = [
     { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: '#3b82f6', promoQty: null, promoPrice: null },
-    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: '#ef4444', promoQty: 2, promoPrice: 1200 },
-    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: '#ec4899', promoQty: 2, promoPrice: 1200 },
+    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: '#ef4444', promoQty: null, promoPrice: null },
+    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: '#ec4899', promoQty: null, promoPrice: null },
     { id: '4', name: 'Alfajor Oreo', price: 800, stock: 15, category: 'snack', color: '#ffffff', promoQty: null, promoPrice: null },
     { id: '5', name: 'Alfajor Nutella', price: 800, stock: 15, category: 'snack', color: '#27272a', promoQty: null, promoPrice: null },
-    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: '#f59e0b', promoQty: 2, promoPrice: 1500 },
+    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: '#f59e0b', promoQty: null, promoPrice: null },
     { id: '7', name: 'Alfajor Prestigio', price: 800, stock: 20, category: 'snack', color: '#8b5cf6', promoQty: null, promoPrice: null }
 ];
 
