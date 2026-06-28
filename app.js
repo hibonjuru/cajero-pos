@@ -215,6 +215,7 @@ function saveHistoryToStorage() {
 // Navigation Tabs switching
 function switchTab(tabId) {
     state.currentTab = tabId;
+    window.scrollTo({ top: 0, behavior: 'instant' });
     
     // Update navigation active styles
     elements.navItems.forEach(item => {
