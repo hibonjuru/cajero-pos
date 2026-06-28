@@ -1095,7 +1095,11 @@ button, input, select, textarea {
 }
 
 .table-scroll-wrapper {
+    overflow-x: auto;
     overflow-y: auto;
+    max-width: 100%;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
     flex-grow: 1;
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
@@ -1457,6 +1461,20 @@ tbody tr:hover {
     }
     .inventory-list-container {
         margin-bottom: 60px;
+    }
+    th, td {
+        padding: 8px 10px !important;
+        font-size: 13px !important;
+    }
+    /* Hide Category column in inventory table on mobile to fit the screen */
+    .inventory-table th:nth-child(2),
+    .inventory-table td:nth-child(2) {
+        display: none !important;
+    }
+    /* Hide ID column in history table on mobile */
+    .history-table th:nth-child(1),
+    .history-table td:nth-child(1) {
+        display: none !important;
     }
 }
 
