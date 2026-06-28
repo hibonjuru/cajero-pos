@@ -434,6 +434,22 @@ async function dbFetchProducts() {
             .order('name');
         if (error) throw error;
         if (data) {
+            if (data.length === 0) {
+                // Supabase database is empty. Migrate local products to cloud!
+                const storedProducts = localStorage.getItem('pos_products');
+                if (storedProducts) {
+                    const localProducts = JSON.parse(storedProducts);
+                    if (localProducts.length > 0) {
+                        state.products = localProducts;
+                        saveProductsToStorage(); // Triggers bulk upsert to Supabase
+                        renderProductGrid();
+                        renderInventoryTable();
+                        updateInventoryStats();
+                        showToast('Productos locales migrados a la nube automáticamente', 'success');
+                        return;
+                    }
+                }
+            }
             // Keep local state in sync
             state.products = data;
             renderProductGrid();
@@ -454,6 +470,38 @@ async function dbFetchHistory() {
             .order('date', { ascending: false });
         if (error) throw error;
         if (data) {
+            if (data.length === 0) {
+                // Supabase table is empty. Migrate local history to cloud!
+                const storedHistory = localStorage.getItem('pos_history');
+                if (storedHistory) {
+                    const localHistory = JSON.parse(storedHistory);
+                    if (localHistory.length > 0) {
+                        state.salesHistory = localHistory;
+                        state.supabaseClient
+                            .from('sales_history')
+                            .insert(localHistory.map(tx => ({
+                                id: tx.id,
+                                date: tx.date,
+                                products: tx.products,
+                                method: tx.method,
+                                total: tx.total,
+                                discount: tx.discount,
+                                paidAmount: tx.paidAmount,
+                                change: tx.change
+                            })))
+                            .then(({ error: migrationError }) => {
+                                if (migrationError) {
+                                    console.error('Error migrating local history to cloud:', migrationError);
+                                }
+                            });
+                        
+                        renderHistoryTable();
+                        updateHistoryMetrics();
+                        showToast('Historial local migrado a la nube automáticamente', 'success');
+                        return;
+                    }
+                }
+            }
             state.salesHistory = data;
             renderHistoryTable();
             updateHistoryMetrics();
