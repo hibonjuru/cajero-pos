@@ -498,11 +498,10 @@ function calculateCartTotals() {
         const qty = item.quantity;
         const promoQty = item.product.promoQty;
         const promoPrice = item.product.promoPrice;
-        const isPromoApplied = item.applyPromo !== false;
 
         subtotal += normalPrice * qty;
 
-        if (usePromos && promoQty && promoPrice && qty >= promoQty && isPromoApplied) {
+        if (usePromos && promoQty && promoPrice && qty >= promoQty) {
             const numPromos = Math.floor(qty / promoQty);
             const remainder = qty % promoQty;
             total += (numPromos * promoPrice) + (remainder * normalPrice);
@@ -610,26 +609,15 @@ function renderCart() {
         let promoBadgeHTML = '';
 
         if (usePromos && item.product.promoQty && item.product.promoPrice && item.quantity >= item.product.promoQty) {
-            const isPromoApplied = item.applyPromo !== false;
             const numPromos = Math.floor(item.quantity / item.product.promoQty);
             const remainder = item.quantity % item.product.promoQty;
+            finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
             
-            if (isPromoApplied) {
-                finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
-                promoBadgeHTML = `
-                    <label style="display: inline-flex; align-items: center; gap: 4px; background: linear-gradient(135deg, var(--color-amber), var(--color-rose)); color: white; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; margin-left: 6px;">
-                        <input type="checkbox" class="item-promo-toggle" data-id="${item.product.id}" checked style="accent-color: var(--color-amber); width: 10px; height: 10px; cursor: pointer;">
-                        <span>Oferta</span>
-                    </label>
-                `;
-            } else {
-                promoBadgeHTML = `
-                    <label style="display: inline-flex; align-items: center; gap: 4px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color); color: var(--text-muted); font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 4px; cursor: pointer; user-select: none; margin-left: 6px;">
-                        <input type="checkbox" class="item-promo-toggle" data-id="${item.product.id}" style="accent-color: var(--color-amber); width: 10px; height: 10px; cursor: pointer;">
-                        <span>Aplicar Oferta</span>
-                    </label>
-                `;
-            }
+            promoBadgeHTML = `
+                <span class="promo-badge" style="font-size: 9px; padding: 2px 6px; box-shadow: none; animation: none; margin-left: 6px;">
+                    <i class="fa-solid fa-tag"></i> Oferta
+                </span>
+            `;
         }
 
         itemRow.innerHTML = `
@@ -655,18 +643,6 @@ function renderCart() {
         itemRow.querySelector('.btn-qty-dec').addEventListener('click', () => updateCartQty(item.product.id, -1));
         itemRow.querySelector('.btn-qty-inc').addEventListener('click', () => updateCartQty(item.product.id, 1));
         itemRow.querySelector('.cart-item-remove').addEventListener('click', () => removeCartItem(item.product.id));
-
-        const promoChk = itemRow.querySelector('.item-promo-toggle');
-        if (promoChk) {
-            promoChk.addEventListener('change', (e) => {
-                const productId = e.target.getAttribute('data-id');
-                const cartItem = state.cart.find(item => item.product.id === productId);
-                if (cartItem) {
-                    cartItem.applyPromo = e.target.checked;
-                    renderCart();
-                }
-            });
-        }
 
         elements.cartItemsList.appendChild(itemRow);
     });
