@@ -1,12 +1,12 @@
-// Initial product seeding if localStorage is empty
+// Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
 const DEFAULT_PRODUCTS = [
-    { id: '1', name: 'Coca-Cola 350ml', price: 1200, stock: 30, category: 'bebida', color: 'var(--color-teal)' },
-    { id: '2', name: 'Pepsi 350ml', price: 1100, stock: 25, category: 'bebida', color: 'var(--color-teal)' },
-    { id: '3', name: 'Papas Fritas Lays', price: 1500, stock: 15, category: 'snack', color: 'var(--color-pink)' },
-    { id: '4', name: 'Sándwich Jamón Queso', price: 2500, stock: 10, category: 'comida', color: 'var(--color-indigo)' },
-    { id: '5', name: 'Chocolate Milky', price: 990, stock: 40, category: 'snack', color: 'var(--color-violet)' },
-    { id: '6', name: 'Galletas de Avena', price: 800, stock: 0, category: 'snack', color: 'var(--color-rose)' },
-    { id: '7', name: 'Café Expreso', price: 1800, stock: 20, category: 'bebida', color: 'var(--color-amber)' }
+    { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: 'var(--color-blue)', promoQty: null, promoPrice: null },
+    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: 'var(--color-red)', promoQty: 2, promoPrice: 1200 },
+    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: 'var(--color-pink)', promoQty: 2, promoPrice: 1200 },
+    { id: '4', name: 'Alfajor Oreo', price: 800, stock: 15, category: 'snack', color: 'var(--color-white)', promoQty: null, promoPrice: null },
+    { id: '5', name: 'Alfajor Nutella', price: 800, stock: 15, category: 'snack', color: 'var(--color-black)', promoQty: null, promoPrice: null },
+    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: 'var(--color-yellow)', promoQty: 2, promoPrice: 1500 },
+    { id: '7', name: 'Alfajor Prestigio', price: 800, stock: 20, category: 'snack', color: 'var(--color-purple)', promoQty: null, promoPrice: null }
 ];
 
 // App State
@@ -34,6 +34,9 @@ const elements = {
     productsGrid: document.getElementById('products-grid'),
     cartItemsList: document.getElementById('cart-items-list'),
     checkoutTotal: document.getElementById('checkout-total'),
+    discountRow: document.getElementById('discount-row'),
+    checkoutDiscount: document.getElementById('checkout-discount'),
+    applyPromosToggle: document.getElementById('apply-promos-toggle'),
     paymentRadios: document.getElementsByName('payment-method'),
     cashFields: document.getElementById('cash-payment-fields'),
     transferFields: document.getElementById('transfer-payment-fields'),
@@ -49,6 +52,8 @@ const elements = {
     prodName: document.getElementById('prod-name'),
     prodPrice: document.getElementById('prod-price'),
     prodStock: document.getElementById('prod-stock'),
+    prodPromoQty: document.getElementById('prod-promo-qty'),
+    prodPromoPrice: document.getElementById('prod-promo-price'),
     prodCategory: document.getElementById('prod-category'),
     cancelEditBtn: document.getElementById('cancel-edit-btn'),
     saveProductBtn: document.getElementById('save-product-btn'),
@@ -96,11 +101,23 @@ function init() {
 
     // Load state from localStorage or seed
     const storedProducts = localStorage.getItem('pos_products');
+    let loadedProducts = [];
     if (storedProducts) {
-        state.products = JSON.parse(storedProducts);
-    } else {
+        loadedProducts = JSON.parse(storedProducts);
+    }
+    
+    // Check if the loaded products are the old default mockup ones
+    const hasOldDefaults = loadedProducts.some(p => p.name === 'Coca-Cola 350ml' || p.name === 'Pepsi 350ml');
+    
+    if (loadedProducts.length === 0 || hasOldDefaults) {
         state.products = [...DEFAULT_PRODUCTS];
         saveProductsToStorage();
+        // Clear history if old test history exists to prevent mismatch
+        if (hasOldDefaults) {
+            localStorage.removeItem('pos_history');
+        }
+    } else {
+        state.products = loadedProducts;
     }
 
     const storedHistory = localStorage.getItem('pos_history');
@@ -163,6 +180,11 @@ function init() {
 
     // Setup Amount Paid inputs
     elements.amountPaid.addEventListener('input', calculateChange);
+
+    // Setup Promotions Toggle
+    elements.applyPromosToggle.addEventListener('change', () => {
+        renderCart();
+    });
 
     // Setup cart clear
     elements.clearCartBtn.addEventListener('click', () => {
@@ -329,10 +351,18 @@ function renderProductGrid() {
             stockText = `Solo ${product.stock}`;
         }
 
+        let promoHTML = '';
+        if (product.promoQty && product.promoPrice) {
+            promoHTML = `<span class="promo-badge" style="margin-top: 4px; width: fit-content;"><i class="fa-solid fa-tag"></i> Oferta ${product.promoQty}x${formatCurrency(product.promoPrice)}</span>`;
+        }
+
         card.innerHTML = `
             <div class="product-card-top">
-                <span class="product-title">${product.name}</span>
-                <span class="product-category-tag">${product.category}</span>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <span class="product-title">${product.name}</span>
+                    ${promoHTML}
+                </div>
+                <span class="product-category-tag">${product.category === 'snack' ? 'Alfajor' : product.category}</span>
             </div>
             <div class="product-card-bottom">
                 <span class="product-price">${formatCurrency(product.price)}</span>
@@ -353,8 +383,34 @@ function renderProductGrid() {
 }
 
 // LOGIC: Cart operations
+function calculateCartTotals() {
+    let subtotal = 0;
+    let total = 0;
+    const usePromos = elements.applyPromosToggle ? elements.applyPromosToggle.checked : true;
+
+    state.cart.forEach(item => {
+        const normalPrice = item.product.price;
+        const qty = item.quantity;
+        const promoQty = item.product.promoQty;
+        const promoPrice = item.product.promoPrice;
+
+        subtotal += normalPrice * qty;
+
+        if (usePromos && promoQty && promoPrice && qty >= promoQty) {
+            const numPromos = Math.floor(qty / promoQty);
+            const remainder = qty % promoQty;
+            total += (numPromos * promoPrice) + (remainder * normalPrice);
+        } else {
+            total += normalPrice * qty;
+        }
+    });
+
+    const discount = subtotal - total;
+    return { subtotal, total, discount };
+}
+
 function getCartTotal() {
-    return state.cart.reduce((total, item) => total + (item.product.price * item.quantity), 0);
+    return calculateCartTotals().total;
 }
 
 function addProductToCart(productId) {
@@ -429,6 +485,7 @@ function renderCart() {
             </div>
         `;
         elements.checkoutTotal.textContent = formatCurrency(0);
+        elements.discountRow.classList.add('hidden');
         elements.submitSaleBtn.disabled = true;
         elements.amountPaid.value = '';
         elements.checkoutChange.textContent = formatCurrency(0);
@@ -436,15 +493,28 @@ function renderCart() {
         return;
     }
 
+    const usePromos = elements.applyPromosToggle ? elements.applyPromosToggle.checked : true;
+
     state.cart.forEach(item => {
         const itemRow = document.createElement('div');
         itemRow.className = 'cart-item';
         
-        const itemTotal = item.product.price * item.quantity;
+        let finalItemTotal = item.product.price * item.quantity;
+        let promoBadgeHTML = '';
+
+        if (usePromos && item.product.promoQty && item.product.promoPrice && item.quantity >= item.product.promoQty) {
+            const numPromos = Math.floor(item.quantity / item.product.promoQty);
+            const remainder = item.quantity % item.product.promoQty;
+            finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
+            promoBadgeHTML = `<span class="promo-badge" style="font-size: 9px; padding: 1px 6px; box-shadow: none; animation: none; margin-left: 6px;"><i class="fa-solid fa-tag"></i> Oferta</span>`;
+        }
 
         itemRow.innerHTML = `
             <div class="cart-item-info">
-                <div class="cart-item-name">${item.product.name}</div>
+                <div class="cart-item-name" style="display: flex; align-items: center; flex-wrap: wrap; gap: 4px;">
+                    ${item.product.name}
+                    ${promoBadgeHTML}
+                </div>
                 <div class="cart-item-price-unit">${formatCurrency(item.product.price)} c/u</div>
             </div>
             <div class="cart-item-controls">
@@ -453,7 +523,7 @@ function renderCart() {
                     <span class="qty-val">${item.quantity}</span>
                     <button class="qty-btn btn-qty-inc"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <div class="cart-item-total">${formatCurrency(itemTotal)}</div>
+                <div class="cart-item-total">${formatCurrency(finalItemTotal)}</div>
                 <button class="cart-item-remove"><i class="fa-solid fa-xmark"></i></button>
             </div>
         `;
@@ -466,8 +536,16 @@ function renderCart() {
         elements.cartItemsList.appendChild(itemRow);
     });
 
-    const total = getCartTotal();
+    const { subtotal, total, discount } = calculateCartTotals();
     elements.checkoutTotal.textContent = formatCurrency(total);
+    
+    // Handle discount row display
+    if (discount > 0) {
+        elements.discountRow.classList.remove('hidden');
+        elements.checkoutDiscount.textContent = `-${formatCurrency(discount)}`;
+    } else {
+        elements.discountRow.classList.add('hidden');
+    }
     
     // Auto-fill paid amount if payment method is bank transfer
     const method = getSelectedPaymentMethod();
@@ -582,7 +660,7 @@ function updateCheckoutState() {
 
 // LOGIC: Process sale
 function processCheckout() {
-    const total = getCartTotal();
+    const { total, discount } = calculateCartTotals();
     if (total <= 0 || state.cart.length === 0) return;
 
     const method = getSelectedPaymentMethod();
@@ -626,6 +704,7 @@ function processCheckout() {
         })),
         method: method,
         total: total,
+        discount: discount,
         paidAmount: method === 'efectivo' ? paid : total,
         change: change
     };
@@ -712,9 +791,11 @@ function handleProductFormSubmit(e) {
     const price = parseFloat(elements.prodPrice.value) || 0;
     const stock = parseInt(elements.prodStock.value) || 0;
     const category = elements.prodCategory.value;
+    const promoQty = parseInt(elements.prodPromoQty.value) || null;
+    const promoPrice = parseFloat(elements.prodPromoPrice.value) || null;
     
     // Find active color picker choice
-    let color = 'var(--color-teal)';
+    let color = 'var(--color-blue)';
     const selectedColorRadio = document.querySelector('input[name="prod-color"]:checked');
     if (selectedColorRadio) {
         color = selectedColorRadio.value;
@@ -729,7 +810,7 @@ function handleProductFormSubmit(e) {
         // Mode: EDIT
         const index = state.products.findIndex(p => p.id === id);
         if (index > -1) {
-            state.products[index] = { ...state.products[index], name, price, stock, category, color };
+            state.products[index] = { ...state.products[index], name, price, stock, category, color, promoQty, promoPrice };
             showToast('Producto actualizado exitosamente', 'success');
         }
     } else {
@@ -740,7 +821,9 @@ function handleProductFormSubmit(e) {
             price,
             stock,
             category,
-            color
+            color,
+            promoQty,
+            promoPrice
         };
         state.products.push(newProduct);
         showToast('Producto registrado exitosamente', 'success');
@@ -761,6 +844,8 @@ function editProductInit(productId) {
     elements.prodName.value = product.name;
     elements.prodPrice.value = product.price;
     elements.prodStock.value = product.stock;
+    elements.prodPromoQty.value = product.promoQty || '';
+    elements.prodPromoPrice.value = product.promoPrice || '';
     elements.prodCategory.value = product.category;
 
     // Select color radio
@@ -788,7 +873,7 @@ function resetProductForm() {
     elements.cancelEditBtn.classList.add('hidden');
 
     // Reset color radios
-    const firstColorRadio = document.querySelector('input[name="prod-color"][value="var(--color-teal)"]');
+    const firstColorRadio = document.querySelector('input[name="prod-color"][value="var(--color-blue)"]');
     if (firstColorRadio) {
         firstColorRadio.checked = true;
         document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('active'));

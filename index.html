@@ -76,9 +76,9 @@
                             </div>
                             <div class="category-filters">
                                 <button class="filter-btn active" data-category="all">Todos</button>
-                                <button class="filter-btn" data-category="comida">Comida</button>
+                                <button class="filter-btn" data-category="snack">Alfajores</button>
                                 <button class="filter-btn" data-category="bebida">Bebidas</button>
-                                <button class="filter-btn" data-category="snack">Snacks</button>
+                                <button class="filter-btn" data-category="comida">Comida</button>
                                 <button class="filter-btn" data-category="otros">Otros</button>
                             </div>
                         </div>
@@ -117,8 +117,20 @@
                                     <span>Total a Pagar:</span>
                                     <span class="total-amount" id="checkout-total">$0</span>
                                 </div>
+                                <div class="summary-row text-danger text-small hidden" id="discount-row" style="margin-top: -6px; font-weight: 600;">
+                                    <span>Descuento Ofertas:</span>
+                                    <span id="checkout-discount">-$0</span>
+                                </div>
 
                                 <div class="divider"></div>
+
+                                <div class="summary-row" style="margin-bottom: 4px;">
+                                    <span class="form-label" style="margin-bottom: 0;"><i class="fa-solid fa-tags text-primary"></i> Aplicar Ofertas / Promos:</span>
+                                    <label class="switch">
+                                        <input type="checkbox" id="apply-promos-toggle" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
 
                                 <div class="payment-method-selector">
                                     <label class="form-label">Método de Pago:</label>
@@ -209,34 +221,48 @@
 
                                 <div class="form-row-2">
                                     <div class="form-group">
+                                        <label for="prod-promo-qty" class="form-label">Cant. Oferta (Ej. 2) [Opcional]</label>
+                                        <input type="number" id="prod-promo-qty" min="0" placeholder="Llevando esta cantidad...">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="prod-promo-price" class="form-label">Precio Oferta ($) [Opcional]</label>
+                                        <input type="number" id="prod-promo-price" min="0" placeholder="Paga este precio total...">
+                                    </div>
+                                </div>
+
+                                <div class="form-row-2">
+                                    <div class="form-group">
                                         <label for="prod-category" class="form-label">Categoría</label>
                                         <select id="prod-category">
+                                            <option value="snack">Alfajores</option>
                                             <option value="bebida">Bebidas</option>
                                             <option value="comida">Comida</option>
-                                            <option value="snack">Snacks</option>
                                             <option value="otros">Otros</option>
                                         </select>
                                     </div>
                                     <div class="form-group">
                                         <label for="prod-color" class="form-label">Color de Tarjeta</label>
                                         <div class="color-picker-grid">
-                                            <label class="color-option color-teal active">
-                                                <input type="radio" name="prod-color" value="var(--color-teal)" checked>
+                                            <label class="color-option color-blue active" title="Azul">
+                                                <input type="radio" name="prod-color" value="var(--color-blue)" checked>
                                             </label>
-                                            <label class="color-option color-indigo">
-                                                <input type="radio" name="prod-color" value="var(--color-indigo)">
+                                            <label class="color-option color-red" title="Rojo">
+                                                <input type="radio" name="prod-color" value="var(--color-red)">
                                             </label>
-                                            <label class="color-option color-violet">
-                                                <input type="radio" name="prod-color" value="var(--color-violet)">
-                                            </label>
-                                            <label class="color-option color-pink">
+                                            <label class="color-option color-pink" title="Fucsia">
                                                 <input type="radio" name="prod-color" value="var(--color-pink)">
                                             </label>
-                                            <label class="color-option color-amber">
-                                                <input type="radio" name="prod-color" value="var(--color-amber)">
+                                            <label class="color-option color-white" title="Blanco">
+                                                <input type="radio" name="prod-color" value="var(--color-white)">
                                             </label>
-                                            <label class="color-option color-rose">
-                                                <input type="radio" name="prod-color" value="var(--color-rose)">
+                                            <label class="color-option color-black" title="Negro">
+                                                <input type="radio" name="prod-color" value="var(--color-black)">
+                                            </label>
+                                            <label class="color-option color-yellow" title="Amarillo">
+                                                <input type="radio" name="prod-color" value="var(--color-yellow)">
+                                            </label>
+                                            <label class="color-option color-purple" title="Morado">
+                                                <input type="radio" name="prod-color" value="var(--color-purple)">
                                             </label>
                                         </div>
                                     </div>
