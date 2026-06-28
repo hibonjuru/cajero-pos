@@ -493,23 +493,48 @@ function calculateCartTotals() {
     let total = 0;
     const usePromos = elements.applyPromosToggle ? elements.applyPromosToggle.checked : true;
 
+    // First calculate subtotal for all items
     state.cart.forEach(item => {
-        const normalPrice = item.product.price;
-        const qty = item.quantity;
-        const promoQty = item.product.promoQty;
-        const promoPrice = item.product.promoPrice;
+        subtotal += item.product.price * item.quantity;
+    });
 
-        subtotal += normalPrice * qty;
+    if (!usePromos) {
+        total = subtotal;
+        return { subtotal, total, discount: 0 };
+    }
 
-        if (usePromos && promoQty && promoPrice && qty >= promoQty) {
-            const numPromos = Math.floor(qty / promoQty);
-            const remainder = qty % promoQty;
-            total += (numPromos * promoPrice) + (remainder * normalPrice);
+    // Group items by promo key if they are eligible for promos
+    // Key format: price_promoQty_promoPrice
+    const promoGroups = {};
+    let regularTotal = 0;
+
+    state.cart.forEach(item => {
+        const p = item.product;
+        if (p.promoQty && p.promoPrice) {
+            const key = `${p.price}_${p.promoQty}_${p.promoPrice}`;
+            if (!promoGroups[key]) {
+                promoGroups[key] = {
+                    normalPrice: p.price,
+                    promoQty: p.promoQty,
+                    promoPrice: p.promoPrice,
+                    totalQuantity: 0
+                };
+            }
+            promoGroups[key].totalQuantity += item.quantity;
         } else {
-            total += normalPrice * qty;
+            regularTotal += p.price * item.quantity;
         }
     });
 
+    // Calculate total for promo groups
+    let promoTotal = 0;
+    Object.values(promoGroups).forEach(group => {
+        const numPromos = Math.floor(group.totalQuantity / group.promoQty);
+        const remainder = group.totalQuantity % group.promoQty;
+        promoTotal += (numPromos * group.promoPrice) + (remainder * group.normalPrice);
+    });
+
+    total = regularTotal + promoTotal;
     const discount = subtotal - total;
     return { subtotal, total, discount };
 }
@@ -601,6 +626,34 @@ function renderCart() {
 
     const usePromos = elements.applyPromosToggle ? elements.applyPromosToggle.checked : true;
 
+    // Group quantities and calculate discounts per group
+    const promoGroups = {};
+    state.cart.forEach(item => {
+        const p = item.product;
+        if (p.promoQty && p.promoPrice) {
+            const key = `${p.price}_${p.promoQty}_${p.promoPrice}`;
+            if (!promoGroups[key]) {
+                promoGroups[key] = {
+                    normalPrice: p.price,
+                    promoQty: p.promoQty,
+                    promoPrice: p.promoPrice,
+                    totalQuantity: 0
+                };
+            }
+            promoGroups[key].totalQuantity += item.quantity;
+        }
+    });
+
+    // Calculate discount for each group
+    Object.keys(promoGroups).forEach(key => {
+        const group = promoGroups[key];
+        const normalCost = group.totalQuantity * group.normalPrice;
+        const numPromos = Math.floor(group.totalQuantity / group.promoQty);
+        const remainder = group.totalQuantity % group.promoQty;
+        const promoCost = (numPromos * group.promoPrice) + (remainder * group.normalPrice);
+        group.discount = normalCost - promoCost;
+    });
+
     state.cart.forEach(item => {
         const itemRow = document.createElement('div');
         itemRow.className = 'cart-item';
@@ -608,16 +661,23 @@ function renderCart() {
         let finalItemTotal = item.product.price * item.quantity;
         let promoBadgeHTML = '';
 
-        if (usePromos && item.product.promoQty && item.product.promoPrice && item.quantity >= item.product.promoQty) {
-            const numPromos = Math.floor(item.quantity / item.product.promoQty);
-            const remainder = item.quantity % item.product.promoQty;
-            finalItemTotal = (numPromos * item.product.promoPrice) + (remainder * item.product.price);
+        const p = item.product;
+        if (usePromos && p.promoQty && p.promoPrice) {
+            const key = `${p.price}_${p.promoQty}_${p.promoPrice}`;
+            const group = promoGroups[key];
             
-            promoBadgeHTML = `
-                <span class="promo-badge" style="font-size: 9px; padding: 2px 6px; box-shadow: none; animation: none; margin-left: 6px;">
-                    <i class="fa-solid fa-tag"></i> Oferta
-                </span>
-            `;
+            if (group && group.totalQuantity >= p.promoQty) {
+                // Proportional discount distribution
+                const itemNormalTotal = p.price * item.quantity;
+                const itemDiscount = (item.quantity / group.totalQuantity) * group.discount;
+                finalItemTotal = Math.round(itemNormalTotal - itemDiscount);
+
+                promoBadgeHTML = `
+                    <span class="promo-badge" style="font-size: 9px; padding: 2px 6px; box-shadow: none; animation: none; margin-left: 6px;">
+                        <i class="fa-solid fa-tag"></i> Oferta
+                    </span>
+                `;
+            }
         }
 
         itemRow.innerHTML = `
