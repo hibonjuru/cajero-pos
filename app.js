@@ -82,6 +82,7 @@ const elements = {
     supabaseUrlInput: document.getElementById('db-supabase-url'),
     supabaseKeyInput: document.getElementById('db-supabase-key'),
     disconnectSupabaseBtn: document.getElementById('disconnect-supabase-btn'),
+    shareConfigBtn: document.getElementById('share-config-btn'),
     
     // Global Toast Container
     toastContainer: document.getElementById('toast-container')
@@ -107,6 +108,17 @@ function updateDateTimeDisplay() {
 
 // Initialization
 function init() {
+    // Intercept configuration URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramUrl = urlParams.get('url');
+    const paramKey = urlParams.get('key');
+    
+    if (paramUrl && paramKey) {
+        localStorage.setItem('pos_sb_url', decodeURIComponent(paramUrl));
+        localStorage.setItem('pos_sb_key', decodeURIComponent(paramKey));
+        window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
     // Set Current Date
     updateDateTimeDisplay();
     setInterval(updateDateTimeDisplay, 60000); // Update time display every minute
@@ -122,9 +134,10 @@ function init() {
             state.supabaseClient = createClient(state.supabaseUrl, state.supabaseKey);
             state.isSupabaseConnected = true;
 
-            // Fill inputs on Ajustes page
+            // Fill inputs and show share configuration button on Ajustes page
             if (elements.supabaseUrlInput) elements.supabaseUrlInput.value = state.supabaseUrl;
             if (elements.supabaseKeyInput) elements.supabaseKeyInput.value = state.supabaseKey;
+            if (elements.shareConfigBtn) elements.shareConfigBtn.classList.remove('hidden');
 
             // Show active cloud indicator in status badge
             const statusBadge = document.querySelector('.status-badge');
@@ -320,6 +333,18 @@ function init() {
                     window.location.reload();
                 }, 1000);
             }
+        });
+    }
+
+    if (elements.shareConfigBtn) {
+        elements.shareConfigBtn.addEventListener('click', () => {
+            const shareUrl = `${window.location.origin}${window.location.pathname}?url=${encodeURIComponent(state.supabaseUrl)}&key=${encodeURIComponent(state.supabaseKey)}`;
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                showToast('¡Enlace de configuración copiado! Ábrelo en otros dispositivos para conectarlos al instante.', 'success');
+            }).catch(err => {
+                console.error('Error copying config link:', err);
+                showToast('Error al copiar el enlace', 'error');
+            });
         });
     }
 

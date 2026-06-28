@@ -412,9 +412,12 @@
                                 <input type="password" id="db-supabase-key" placeholder="Tu Anon API Key" style="width: 100%; background-color: var(--bg-sidebar); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: var(--border-radius-md); outline: none;">
                             </div>
                             
-                            <div class="form-actions mt-4" style="display: flex; gap: 12px;">
-                                <button type="button" id="disconnect-supabase-btn" class="btn-danger" style="flex: 1; padding: 12px;">Desconectar Nube</button>
-                                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px;">Guardar y Conectar</button>
+                            <div class="form-actions mt-4" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <button type="button" id="disconnect-supabase-btn" class="btn-danger" style="flex: 1; padding: 12px; min-width: 120px;">Desconectar Nube</button>
+                                <button type="submit" class="btn-primary" style="flex: 1; padding: 12px; min-width: 120px;">Guardar y Conectar</button>
+                                <button type="button" id="share-config-btn" class="btn-secondary hidden" style="flex: 1; padding: 12px; min-width: 100%; margin-top: 8px;">
+                                    <i class="fa-solid fa-share-nodes"></i> Compartir Configuración (Copiar Enlace)
+                                </button>
                             </div>
                         </form>
                     </div>
@@ -507,6 +510,6 @@ create policy "Public Access" on sales_history for all using (true) with check (
     </div>
 
     <!-- Main Logic Script -->
-    <script src="app.js?v=3.1"></script>
+    <script src="app.js?v=3.2"></script>
 </body>
 </html>
