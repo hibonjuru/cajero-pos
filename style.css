@@ -1405,3 +1405,46 @@ tbody tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 480px) {
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+        gap: 12px;
+    }
+    .product-card {
+        height: 130px;
+        padding: 10px;
+    }
+    .product-title {
+        font-size: 13px;
+        font-weight: 500;
+        line-height: 1.2;
+    }
+    .product-price {
+        font-size: 15px;
+    }
+    .stock-badge {
+        font-size: 9px;
+        padding: 2px 5px;
+    }
+    .category-filters {
+        gap: 6px;
+    }
+    .filter-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+    .main-content {
+        padding: 15px;
+    }
+    .payment-options {
+        gap: 8px;
+    }
+    .option-content {
+        font-size: 11px;
+    }
+    .total-amount {
+        font-size: 22px;
+    }
+}
+
