@@ -1,0 +1,9 @@
+# IDE and local configuration files
+.gemini/
+.agents/
+.vscode/
+
+# Local task/plan files (optional, but good to keep local)
+implementation_plan.md
+task.md
+walkthrough.md
