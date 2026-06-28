@@ -68,7 +68,9 @@ const elements = {
     clearHistoryBtn: document.getElementById('clear-history-btn'),
     metricTotalSales: document.getElementById('metric-total-sales'),
     metricCashSales: document.getElementById('metric-cash-sales'),
+    metricCashCount: document.getElementById('metric-cash-count'),
     metricTransferSales: document.getElementById('metric-transfer-sales'),
+    metricTransferCount: document.getElementById('metric-transfer-count'),
     metricTransactionCount: document.getElementById('metric-transaction-count'),
     
     // Global Toast Container
@@ -1096,19 +1098,25 @@ function updateHistoryMetrics() {
     let totalSales = 0;
     let cashSales = 0;
     let transferSales = 0;
+    let cashCount = 0;
+    let transferCount = 0;
 
     state.salesHistory.forEach(tx => {
         totalSales += tx.total;
         if (tx.method === 'efectivo') {
             cashSales += tx.total;
+            cashCount++;
         } else {
             transferSales += tx.total;
+            transferCount++;
         }
     });
 
     elements.metricTotalSales.textContent = formatCurrency(totalSales);
     elements.metricCashSales.textContent = formatCurrency(cashSales);
+    elements.metricCashCount.textContent = `${cashCount} venta${cashCount === 1 ? '' : 's'}`;
     elements.metricTransferSales.textContent = formatCurrency(transferSales);
+    elements.metricTransferCount.textContent = `${transferCount} transferencia${transferCount === 1 ? '' : 's'}`;
     elements.metricTransactionCount.textContent = state.salesHistory.length;
 }
 
