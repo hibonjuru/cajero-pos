@@ -16,7 +16,11 @@ let state = {
     salesHistory: [],
     currentTab: 'terminal',
     categoryFilter: 'all',
-    searchQuery: ''
+    searchQuery: '',
+    supabaseUrl: '',
+    supabaseKey: '',
+    isSupabaseConnected: false,
+    supabaseClient: null
 };
 
 // DOM Elements
@@ -73,6 +77,12 @@ const elements = {
     metricTransferCount: document.getElementById('metric-transfer-count'),
     metricTransactionCount: document.getElementById('metric-transaction-count'),
     
+    // Settings Tab
+    supabaseForm: document.getElementById('supabase-config-form'),
+    supabaseUrlInput: document.getElementById('db-supabase-url'),
+    supabaseKeyInput: document.getElementById('db-supabase-key'),
+    disconnectSupabaseBtn: document.getElementById('disconnect-supabase-btn'),
+    
     // Global Toast Container
     toastContainer: document.getElementById('toast-container')
 };
@@ -101,60 +111,91 @@ function init() {
     updateDateTimeDisplay();
     setInterval(updateDateTimeDisplay, 60000); // Update time display every minute
 
-    // Load state from localStorage or seed
-    const storedProducts = localStorage.getItem('pos_products');
-    let loadedProducts = [];
-    if (storedProducts) {
-        loadedProducts = JSON.parse(storedProducts);
-    }
-    
-    // Check if the loaded products are the old default mockup ones
-    const hasOldDefaults = loadedProducts.some(p => p.name === 'Coca-Cola 350ml' || p.name === 'Pepsi 350ml');
-    
-    if (loadedProducts.length === 0 || hasOldDefaults) {
-        state.products = [...DEFAULT_PRODUCTS];
-        saveProductsToStorage();
-        // Clear history if old test history exists to prevent mismatch
-        if (hasOldDefaults) {
-            localStorage.removeItem('pos_history');
+    // Load cloud connection settings
+    state.supabaseUrl = localStorage.getItem('pos_sb_url') || '';
+    state.supabaseKey = localStorage.getItem('pos_sb_key') || '';
+
+    // Initialize Supabase Client
+    if (state.supabaseUrl && state.supabaseKey) {
+        try {
+            const { createClient } = window.supabase;
+            state.supabaseClient = createClient(state.supabaseUrl, state.supabaseKey);
+            state.isSupabaseConnected = true;
+
+            // Fill inputs on Ajustes page
+            if (elements.supabaseUrlInput) elements.supabaseUrlInput.value = state.supabaseUrl;
+            if (elements.supabaseKeyInput) elements.supabaseKeyInput.value = state.supabaseKey;
+
+            // Show active cloud indicator in status badge
+            const statusBadge = document.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.innerHTML = '<span class="dot" style="background-color: #10b981;"></span> Nube Conectada';
+            }
+        } catch (err) {
+            console.error('Error initializing Supabase:', err);
+            state.isSupabaseConnected = false;
         }
-    } else {
-        state.products = loadedProducts;
     }
 
-    // Migrate old var(--color-...) strings to hex values for offline visual correctness
-    const colorMap = {
-        'var(--color-blue)': '#3b82f6',
-        'var(--color-red)': '#ef4444',
-        'var(--color-pink)': '#ec4899',
-        'var(--color-white)': '#ffffff',
-        'var(--color-black)': '#27272a',
-        'var(--color-yellow)': '#f59e0b',
-        'var(--color-purple)': '#8b5cf6',
-        'var(--color-teal)': '#14b8a6',
-        'var(--color-rose)': '#f43f5e',
-        'var(--color-amber)': '#f59e0b',
-        'var(--color-violet)': '#8b5cf6',
-        'var(--color-indigo)': '#6366f1'
-    };
-
-    let needsSave = false;
-    state.products.forEach(p => {
-        if (p.color && colorMap[p.color]) {
-            p.color = colorMap[p.color];
-            needsSave = true;
+    if (state.isSupabaseConnected) {
+        // Fetch cloud data and start replication subscription
+        dbFetchProducts();
+        dbFetchHistory();
+        setupSupabaseRealtime();
+    } else {
+        // Local Fallback Loader
+        const storedProducts = localStorage.getItem('pos_products');
+        let loadedProducts = [];
+        if (storedProducts) {
+            loadedProducts = JSON.parse(storedProducts);
         }
-    });
+        
+        const hasOldDefaults = loadedProducts.some(p => p.name === 'Coca-Cola 350ml' || p.name === 'Pepsi 350ml');
+        
+        if (loadedProducts.length === 0 || hasOldDefaults) {
+            state.products = [...DEFAULT_PRODUCTS];
+            saveProductsToStorage();
+            if (hasOldDefaults) {
+                localStorage.removeItem('pos_history');
+            }
+        } else {
+            state.products = loadedProducts;
+        }
 
-    if (needsSave) {
-        saveProductsToStorage();
-    }
+        // Migrate old var(--color-...) strings to hex values for offline visual correctness
+        const colorMap = {
+            'var(--color-blue)': '#3b82f6',
+            'var(--color-red)': '#ef4444',
+            'var(--color-pink)': '#ec4899',
+            'var(--color-white)': '#ffffff',
+            'var(--color-black)': '#27272a',
+            'var(--color-yellow)': '#f59e0b',
+            'var(--color-purple)': '#8b5cf6',
+            'var(--color-teal)': '#14b8a6',
+            'var(--color-rose)': '#f43f5e',
+            'var(--color-amber)': '#f59e0b',
+            'var(--color-violet)': '#8b5cf6',
+            'var(--color-indigo)': '#6366f1'
+        };
 
-    const storedHistory = localStorage.getItem('pos_history');
-    if (storedHistory) {
-        state.salesHistory = JSON.parse(storedHistory);
-    } else {
-        state.salesHistory = [];
+        let needsSave = false;
+        state.products.forEach(p => {
+            if (p.color && colorMap[p.color]) {
+                p.color = colorMap[p.color];
+                needsSave = true;
+            }
+        });
+
+        if (needsSave) {
+            saveProductsToStorage();
+        }
+
+        const storedHistory = localStorage.getItem('pos_history');
+        if (storedHistory) {
+            state.salesHistory = JSON.parse(storedHistory);
+        } else {
+            state.salesHistory = [];
+        }
     }
 
     // Set up navigation event listeners
@@ -246,6 +287,42 @@ function init() {
     elements.exportHistoryBtn.addEventListener('click', exportHistoryToCSV);
     elements.clearHistoryBtn.addEventListener('click', clearHistory);
 
+    // Setup Supabase Cloud settings page listeners
+    if (elements.supabaseForm) {
+        elements.supabaseForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const url = elements.supabaseUrlInput.value.trim();
+            const key = elements.supabaseKeyInput.value.trim();
+            
+            if (!url || !key) {
+                showToast('Debes ingresar la URL y la Anon Key de Supabase', 'warning');
+                return;
+            }
+            
+            localStorage.setItem('pos_sb_url', url);
+            localStorage.setItem('pos_sb_key', key);
+            showToast('Conectando a la base de datos...', 'info');
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        });
+    }
+
+    if (elements.disconnectSupabaseBtn) {
+        elements.disconnectSupabaseBtn.addEventListener('click', () => {
+            if (confirm('¿Estás seguro de que deseas desconectarte de la base de datos en la nube y volver al modo sin conexión local?')) {
+                localStorage.removeItem('pos_sb_url');
+                localStorage.removeItem('pos_sb_key');
+                showToast('Desconectando de la nube...', 'info');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            }
+        });
+    }
+
     // Setup Promo Modal Actions
     document.getElementById('close-modal-btn').addEventListener('click', closePromoModal);
     
@@ -322,13 +399,115 @@ function init() {
     updateHistoryMetrics();
 }
 
+// Supabase DB Helpers
+async function dbFetchProducts() {
+    if (!state.isSupabaseConnected || !state.supabaseClient) return;
+    try {
+        const { data, error } = await state.supabaseClient
+            .from('products')
+            .select('*')
+            .order('name');
+        if (error) throw error;
+        if (data) {
+            // Keep local state in sync
+            state.products = data;
+            renderProductGrid();
+            renderInventoryTable();
+            updateInventoryStats();
+        }
+    } catch (err) {
+        console.error('Error fetching products from Supabase:', err);
+    }
+}
+
+async function dbFetchHistory() {
+    if (!state.isSupabaseConnected || !state.supabaseClient) return;
+    try {
+        const { data, error } = await state.supabaseClient
+            .from('sales_history')
+            .select('*')
+            .order('date', { ascending: false });
+        if (error) throw error;
+        if (data) {
+            state.salesHistory = data;
+            renderHistoryTable();
+            updateHistoryMetrics();
+        }
+    } catch (err) {
+        console.error('Error fetching history from Supabase:', err);
+    }
+}
+
+function setupSupabaseRealtime() {
+    if (!state.isSupabaseConnected || !state.supabaseClient) return;
+
+    // Subscribe to products table changes
+    state.supabaseClient
+        .channel('realtime-products')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, () => {
+            dbFetchProducts();
+        })
+        .subscribe();
+
+    // Subscribe to sales history changes
+    state.supabaseClient
+        .channel('realtime-history')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'sales_history' }, () => {
+            dbFetchHistory();
+        })
+        .subscribe();
+}
+
 // Save helpers
 function saveProductsToStorage() {
     localStorage.setItem('pos_products', JSON.stringify(state.products));
+    
+    if (state.isSupabaseConnected && state.supabaseClient) {
+        state.supabaseClient
+            .from('products')
+            .upsert(state.products.map(p => ({
+                id: p.id,
+                name: p.name,
+                price: p.price,
+                stock: p.stock,
+                category: p.category,
+                color: p.color,
+                promoQty: p.promoQty,
+                promoPrice: p.promoPrice
+            })))
+            .then(({ error }) => {
+                if (error) {
+                    console.error('Error syncing products to Supabase:', error);
+                    showToast('Error de sincronización en la nube', 'error');
+                }
+            });
+    }
 }
 
 function saveHistoryToStorage() {
     localStorage.setItem('pos_history', JSON.stringify(state.salesHistory));
+    
+    if (state.isSupabaseConnected && state.supabaseClient && state.salesHistory.length > 0) {
+        const latestTx = state.salesHistory[0];
+        state.supabaseClient
+            .from('sales_history')
+            .insert({
+                id: latestTx.id,
+                date: latestTx.date,
+                products: latestTx.products,
+                method: latestTx.method,
+                total: latestTx.total,
+                discount: latestTx.discount,
+                paidAmount: latestTx.paidAmount,
+                change: latestTx.change
+            })
+            .then(({ error }) => {
+                if (error) {
+                    console.error('Error syncing transaction to Supabase:', error);
+                    showToast('Error al guardar venta en la nube', 'error');
+                }
+            });
+    }
 }
 
 // Navigation Tabs switching
@@ -369,6 +548,9 @@ function switchTab(tabId) {
         elements.pageSubtitle.textContent = 'Consulte ventas históricas y analice sus métricas';
         renderHistoryTable();
         updateHistoryMetrics();
+    } else if (tabId === 'settings') {
+        elements.pageTitle.textContent = 'Ajustes de la Aplicación';
+        elements.pageSubtitle.textContent = 'Configura la base de datos en la nube y sincroniza tus dispositivos';
     }
 }
 
@@ -1062,6 +1244,20 @@ function deleteProduct(productId) {
         state.cart = state.cart.filter(item => item.product.id !== productId);
         
         saveProductsToStorage();
+        
+        if (state.isSupabaseConnected && state.supabaseClient) {
+            state.supabaseClient
+                .from('products')
+                .delete()
+                .eq('id', productId)
+                .then(({ error }) => {
+                    if (error) {
+                        console.error('Error deleting product from Supabase:', error);
+                        showToast('Error al eliminar producto en la nube', 'error');
+                    }
+                });
+        }
+
         renderInventoryTable();
         updateInventoryStats();
         showToast(`"${product.name}" eliminado`, 'info');
@@ -1162,6 +1358,20 @@ function clearHistory() {
     if (confirm('¿Estás seguro de que deseas borrar todo el historial de transacciones? Esta acción no se puede deshacer.')) {
         state.salesHistory = [];
         saveHistoryToStorage();
+        
+        if (state.isSupabaseConnected && state.supabaseClient) {
+            state.supabaseClient
+                .from('sales_history')
+                .delete()
+                .neq('id', 'placeholder')
+                .then(({ error }) => {
+                    if (error) {
+                        console.error('Error clearing history in Supabase:', error);
+                        showToast('Error al borrar historial en la nube', 'error');
+                    }
+                });
+        }
+
         renderHistoryTable();
         updateHistoryMetrics();
         showToast('Historial borrado con éxito', 'success');
