@@ -704,8 +704,8 @@ button, input, select, textarea {
 
 .payment-options {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
 }
 
 .payment-option-card {
@@ -1183,8 +1183,8 @@ tbody tr:hover {
 /* Sales Metrics Dashboard */
 .sales-metrics {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
     flex-shrink: 0;
 }
 
@@ -1192,7 +1192,7 @@ tbody tr:hover {
     display: flex;
     align-items: center;
     gap: 16px;
-    padding: 20px;
+    padding: 18px;
 }
 
 .metric-icon {
@@ -1208,11 +1208,13 @@ tbody tr:hover {
 .bg-emerald-light { background-color: rgba(16, 185, 129, 0.1); }
 .bg-blue-light { background-color: rgba(59, 130, 246, 0.1); }
 .bg-purple-light { background-color: rgba(139, 92, 246, 0.1); }
+.bg-cyan-light { background-color: rgba(6, 182, 212, 0.1); }
 .bg-amber-light { background-color: rgba(245, 158, 11, 0.1); }
 
 .text-emerald { color: var(--color-success); }
 .text-blue { color: var(--color-info); }
 .text-purple { color: var(--color-violet); }
+.text-cyan { color: #06b6d4; }
 .text-amber { color: var(--color-warning); }
 
 .metric-info span {
@@ -1260,6 +1262,11 @@ tbody tr:hover {
 .history-payment-badge.transferencia {
     background-color: rgba(139, 92, 246, 0.1);
     color: var(--color-violet);
+}
+
+.history-payment-badge.tarjeta {
+    background-color: rgba(6, 182, 212, 0.1);
+    color: #06b6d4;
 }
 
 .history-detail-subtext {

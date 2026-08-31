@@ -158,6 +158,13 @@
                                                 <span>Transferencia</span>
                                             </div>
                                         </label>
+                                        <label class="payment-option-card">
+                                            <input type="radio" name="payment-method" value="tarjeta">
+                                            <div class="option-content">
+                                                <i class="fa-solid fa-credit-card"></i>
+                                                <span>Tarjeta</span>
+                                            </div>
+                                        </label>
                                     </div>
                                 </div>
 
@@ -363,6 +370,16 @@
                             </div>
                         </div>
                         <div class="metric-card glass-panel">
+                            <div class="metric-icon bg-cyan-light text-cyan">
+                                <i class="fa-solid fa-credit-card"></i>
+                            </div>
+                            <div class="metric-info">
+                                <span>Ventas Tarjeta</span>
+                                <h3 id="metric-card-sales">$0</h3>
+                                <span id="metric-card-count" style="font-size: 11px; color: var(--text-muted);">0 tarjetas</span>
+                            </div>
+                        </div>
+                        <div class="metric-card glass-panel">
                             <div class="metric-icon bg-amber-light text-amber">
                                 <i class="fa-solid fa-receipt"></i>
                             </div>
@@ -510,6 +527,6 @@ create policy "Public Access" on sales_history for all using (true) with check (
     </div>
 
     <!-- Main Logic Script -->
-    <script src="app.js?v=4.1"></script>
+    <script src="app.js?v=5.0"></script>
 </body>
 </html>

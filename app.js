@@ -27,6 +27,13 @@ let state = {
     supabaseClient: null
 };
 
+// Payment Method Configuration
+const PAYMENT_METHOD_INFO = {
+    efectivo: { label: 'Efectivo', icon: 'fa-money-bill-wave', badgeClass: 'efectivo' },
+    transferencia: { label: 'Transferencia', icon: 'fa-mobile-screen-button', badgeClass: 'transferencia' },
+    tarjeta: { label: 'Tarjeta', icon: 'fa-credit-card', badgeClass: 'tarjeta' }
+};
+
 // DOM Elements
 const elements = {
     // Navigation
@@ -79,6 +86,8 @@ const elements = {
     metricCashCount: document.getElementById('metric-cash-count'),
     metricTransferSales: document.getElementById('metric-transfer-sales'),
     metricTransferCount: document.getElementById('metric-transfer-count'),
+    metricCardSales: document.getElementById('metric-card-sales'),
+    metricCardCount: document.getElementById('metric-card-count'),
     metricTransactionCount: document.getElementById('metric-transaction-count'),
     
     // Settings Tab
@@ -248,8 +257,9 @@ function init() {
             });
             e.target.closest('.payment-option-card').classList.add('active');
             
+            const requiresChange = (method === 'efectivo');
             // Toggle payment detail fields
-            if (method === 'efectivo') {
+            if (requiresChange) {
                 elements.cashFields.classList.remove('hidden');
                 elements.transferFields.classList.add('hidden');
                 elements.amountPaid.value = '';
@@ -258,7 +268,19 @@ function init() {
             } else {
                 elements.cashFields.classList.add('hidden');
                 elements.transferFields.classList.remove('hidden');
-                // For bank transfers, payment received is exactly the total
+
+                // Dynamic alert text for electronic payment (tarjeta vs transferencia)
+                const transferAlertTitle = elements.transferFields.querySelector('.transfer-alert p strong');
+                const transferAlertText = elements.transferFields.querySelector('.transfer-alert span');
+                if (method === 'tarjeta') {
+                    if (transferAlertTitle) transferAlertTitle.textContent = 'Pago con Tarjeta (POS / Débito / Crédito)';
+                    if (transferAlertText) transferAlertText.textContent = 'Verifica que la transacción haya sido aprobada en el terminal POS. No requiere dar vuelto.';
+                } else {
+                    if (transferAlertTitle) transferAlertTitle.textContent = 'Pago por Transferencia Bancaria';
+                    if (transferAlertText) transferAlertText.textContent = 'Verifica el comprobante bancario antes de registrar la venta. No requiere dar vuelto.';
+                }
+
+                // For electronic payments, payment received is exactly the total
                 const total = getCartTotal();
                 elements.amountPaid.value = total;
             }
@@ -981,9 +1003,9 @@ function renderCart() {
         elements.discountRow.classList.add('hidden');
     }
     
-    // Auto-fill paid amount if payment method is bank transfer
+    // Auto-fill paid amount if payment method is not cash
     const method = getSelectedPaymentMethod();
-    if (method === 'transferencia') {
+    if (method !== 'efectivo') {
         elements.amountPaid.value = total;
     }
     
@@ -1054,8 +1076,9 @@ function calculateChange() {
     const total = getCartTotal();
     const paid = parseFloat(elements.amountPaid.value) || 0;
     const method = getSelectedPaymentMethod();
+    const requiresChange = (method === 'efectivo');
     
-    if (method === 'transferencia') {
+    if (!requiresChange) {
         elements.checkoutChange.textContent = formatCurrency(0);
         elements.checkoutChange.className = 'change-amount';
         updateCheckoutState();
@@ -1078,13 +1101,14 @@ function updateCheckoutState() {
     const total = getCartTotal();
     const paid = parseFloat(elements.amountPaid.value) || 0;
     const method = getSelectedPaymentMethod();
+    const requiresChange = (method === 'efectivo');
     
     let isPaymentValid = false;
     
     if (total > 0) {
-        if (method === 'transferencia') {
-            isPaymentValid = true; // Transfer checks are verified manually, amount is simulated as matching total
-        } else if (method === 'efectivo' && paid >= total) {
+        if (!requiresChange) {
+            isPaymentValid = true; // Electronic payments verified on terminal/receipt
+        } else if (paid >= total) {
             isPaymentValid = true; // Cash payment is sufficient
         }
     }
@@ -1093,15 +1117,85 @@ function updateCheckoutState() {
 }
 
 // LOGIC: Process sale
-function processCheckout() {
+async function processCheckout() {
     const { total, discount } = calculateCartTotals();
     if (total <= 0 || state.cart.length === 0) return;
 
     const method = getSelectedPaymentMethod();
+    const requiresChange = (method === 'efectivo');
     const paid = parseFloat(elements.amountPaid.value) || 0;
-    const change = method === 'efectivo' ? (paid - total) : 0;
+    const change = requiresChange ? (paid - total) : 0;
 
-    // 1. Reduce stock in state.products
+    // Generate unique collision-proof ID
+    const randomSuffix = (typeof crypto !== 'undefined' && crypto.randomUUID)
+        ? crypto.randomUUID().slice(0, 8).toUpperCase()
+        : (Date.now().toString().slice(-6) + '-' + Math.floor(Math.random() * 1000));
+    const txId = 'TX-' + randomSuffix;
+    const txDate = new Date().toISOString();
+    const txProducts = state.cart.map(item => ({
+        id: item.product.id,
+        name: item.product.name,
+        price: item.product.price,
+        quantity: item.quantity
+    }));
+
+    const transaction = {
+        id: txId,
+        date: txDate,
+        products: txProducts,
+        method: method,
+        total: total,
+        discount: discount,
+        paidAmount: requiresChange ? paid : total,
+        change: change
+    };
+
+    // Temporarily disable submit button to prevent double-clicks
+    elements.submitSaleBtn.disabled = true;
+
+    // 1. ONLINE ATOMIC EXECUTION VIA SUPABASE RPC
+    if (state.isSupabaseConnected && state.supabaseClient) {
+        try {
+            const { data, error } = await state.supabaseClient.rpc('process_sale', {
+                p_sale_id: transaction.id,
+                p_date: transaction.date,
+                p_products: transaction.products,
+                p_method: transaction.method,
+                p_total: transaction.total,
+                p_discount: transaction.discount,
+                p_paid_amount: transaction.paidAmount,
+                p_change: transaction.change
+            });
+
+            if (error) {
+                console.error('Error in process_sale RPC:', error);
+                throw error;
+            }
+
+            // Sync local sales history
+            state.salesHistory.unshift(transaction);
+            localStorage.setItem('pos_history', JSON.stringify(state.salesHistory));
+
+            // Refresh products from cloud (also triggered by Realtime)
+            dbFetchProducts();
+
+            clearCart();
+            showToast('¡Venta registrada con éxito!', 'success');
+            
+            renderProductGrid();
+            updateInventoryStats();
+            updateHistoryMetrics();
+            renderHistoryTable();
+            return;
+        } catch (rpcErr) {
+            console.error('Error processing atomic sale:', rpcErr);
+            showToast(`Error al registrar venta: ${rpcErr.message || 'Fallo de conexión'}`, 'error');
+            elements.submitSaleBtn.disabled = false;
+            return;
+        }
+    }
+
+    // 2. OFFLINE FALLBACK (When disconnected from Supabase)
     let stockValid = true;
     const itemsForSale = [];
 
@@ -1118,39 +1212,23 @@ function processCheckout() {
         }
     });
 
-    if (!stockValid) return; // Abort checkout if stock became invalid
+    if (!stockValid) {
+        elements.submitSaleBtn.disabled = false;
+        return;
+    }
 
-    // Commit stock reduction
+    // Commit stock reduction locally
     itemsForSale.forEach(item => {
         item.product.stock -= item.quantity;
     });
     saveProductsToStorage();
 
-    // 2. Add to sales history
-    const transaction = {
-        id: 'TX-' + Date.now().toString().slice(-6),
-        date: new Date().toISOString(),
-        products: state.cart.map(item => ({
-            id: item.product.id,
-            name: item.product.name,
-            price: item.product.price,
-            quantity: item.quantity
-        })),
-        method: method,
-        total: total,
-        discount: discount,
-        paidAmount: method === 'efectivo' ? paid : total,
-        change: change
-    };
-
-    state.salesHistory.unshift(transaction); // Prepend to show latest first
+    state.salesHistory.unshift(transaction);
     saveHistoryToStorage();
 
-    // 3. Clear cart & feedback
     clearCart();
-    showToast('¡Venta registrada con éxito!', 'success');
+    showToast('¡Venta registrada localmente (Modo sin conexión)!', 'success');
     
-    // 4. Update elements
     renderProductGrid();
     updateInventoryStats();
     updateHistoryMetrics();
@@ -1378,6 +1456,8 @@ function renderHistoryTable() {
             hour: '2-digit', minute: '2-digit'
         });
 
+        const payInfo = PAYMENT_METHOD_INFO[tx.method] || { label: tx.method || 'Otro', icon: 'fa-receipt', badgeClass: 'efectivo' };
+
         // Detail info on payment amount and change
         let detailsHTML = '';
         if (tx.method === 'efectivo') {
@@ -1385,6 +1465,8 @@ function renderHistoryTable() {
                 <span class="history-detail-subtext">Paga: ${formatCurrency(tx.paidAmount)}</span>
                 <span class="history-detail-subtext text-success">Vuelto: ${formatCurrency(tx.change)}</span>
             `;
+        } else if (tx.method === 'tarjeta') {
+            detailsHTML = `<span class="history-detail-subtext" style="color: #06b6d4;">POS Aprobado</span>`;
         } else {
             detailsHTML = `<span class="history-detail-subtext">Comp. Validado</span>`;
         }
@@ -1394,9 +1476,9 @@ function renderHistoryTable() {
             <td>${formattedDate}</td>
             <td><div style="max-width: 320px; overflow-wrap: break-word;">${productsHTML}</div></td>
             <td>
-                <span class="history-payment-badge ${tx.method}">
-                    <i class="fa-solid ${tx.method === 'efectivo' ? 'fa-money-bill-wave' : 'fa-mobile-screen-button'}"></i>
-                    ${tx.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}
+                <span class="history-payment-badge ${payInfo.badgeClass}">
+                    <i class="fa-solid ${payInfo.icon}"></i>
+                    ${payInfo.label}
                 </span>
             </td>
             <td><strong class="text-success">${formatCurrency(tx.total)}</strong></td>
@@ -1411,26 +1493,33 @@ function updateHistoryMetrics() {
     let totalSales = 0;
     let cashSales = 0;
     let transferSales = 0;
+    let cardSales = 0;
     let cashCount = 0;
     let transferCount = 0;
+    let cardCount = 0;
 
     state.salesHistory.forEach(tx => {
         totalSales += tx.total;
         if (tx.method === 'efectivo') {
             cashSales += tx.total;
             cashCount++;
-        } else {
+        } else if (tx.method === 'transferencia') {
             transferSales += tx.total;
             transferCount++;
+        } else if (tx.method === 'tarjeta') {
+            cardSales += tx.total;
+            cardCount++;
         }
     });
 
-    elements.metricTotalSales.textContent = formatCurrency(totalSales);
-    elements.metricCashSales.textContent = formatCurrency(cashSales);
-    elements.metricCashCount.textContent = `${cashCount} venta${cashCount === 1 ? '' : 's'}`;
-    elements.metricTransferSales.textContent = formatCurrency(transferSales);
-    elements.metricTransferCount.textContent = `${transferCount} transferencia${transferCount === 1 ? '' : 's'}`;
-    elements.metricTransactionCount.textContent = state.salesHistory.length;
+    if (elements.metricTotalSales) elements.metricTotalSales.textContent = formatCurrency(totalSales);
+    if (elements.metricCashSales) elements.metricCashSales.textContent = formatCurrency(cashSales);
+    if (elements.metricCashCount) elements.metricCashCount.textContent = `${cashCount} venta${cashCount === 1 ? '' : 's'}`;
+    if (elements.metricTransferSales) elements.metricTransferSales.textContent = formatCurrency(transferSales);
+    if (elements.metricTransferCount) elements.metricTransferCount.textContent = `${transferCount} transferencia${transferCount === 1 ? '' : 's'}`;
+    if (elements.metricCardSales) elements.metricCardSales.textContent = formatCurrency(cardSales);
+    if (elements.metricCardCount) elements.metricCardCount.textContent = `${cardCount} tarjeta${cardCount === 1 ? '' : 's'}`;
+    if (elements.metricTransactionCount) elements.metricTransactionCount.textContent = state.salesHistory.length;
 }
 
 function clearHistory() {
@@ -1477,12 +1566,13 @@ async function exportHistoryToCSV() {
         
         // Stringify products list
         const productsStr = tx.products.map(p => `${p.name} (x${p.quantity})`).join('; ');
-        
+        const methodLabel = PAYMENT_METHOD_INFO[tx.method] ? PAYMENT_METHOD_INFO[tx.method].label : tx.method;
+
         const row = [
             `"${tx.id}"`,
             `"${formattedDate}"`,
             `"${productsStr.replace(/"/g, '""')}"`,
-            `"${tx.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}"`,
+            `"${methodLabel}"`,
             tx.total,
             tx.paidAmount,
             tx.change
