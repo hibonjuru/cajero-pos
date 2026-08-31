@@ -2,14 +2,14 @@
 const DEFAULT_SUPABASE_URL = 'https://lximlzqogseokaepdbuc.supabase.co';
 const DEFAULT_SUPABASE_KEY = 'sb_publishable_9SgN6k8wc1KBErom78TAkQ_jqTvvIat';
 
-// Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
+// Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales ordenado por precio)
 const DEFAULT_PRODUCTS = [
     { id: '1', name: 'Alfajor Tradicional', price: 700, stock: 10, category: 'snack', color: '#3b82f6', promoQty: 2, promoPrice: 1200 },
     { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 10, category: 'snack', color: '#ef4444', promoQty: 2, promoPrice: 1200 },
     { id: '3', name: 'Alfajor Mantequilla de Maní', price: 800, stock: 10, category: 'snack', color: '#ec4899', promoQty: 2, promoPrice: 1500 },
-    { id: '4', name: 'Alfajor Oreo', price: 900, stock: 8, category: 'snack', color: '#ffffff', promoQty: 2, promoPrice: 1600 },
     { id: '5', name: 'Alfajor Nutella', price: 800, stock: 8, category: 'snack', color: '#27272a', promoQty: 2, promoPrice: 1500 },
     { id: '6', name: 'Alfajor Bon o Bon', price: 900, stock: 9, category: 'snack', color: '#f59e0b', promoQty: 2, promoPrice: 1600 },
+    { id: '4', name: 'Alfajor Oreo', price: 900, stock: 8, category: 'snack', color: '#ffffff', promoQty: 2, promoPrice: 1600 },
     { id: '7', name: 'Alfajor Prestigio', price: 900, stock: 10, category: 'snack', color: '#8b5cf6', promoQty: 2, promoPrice: 1600 }
 ];
 
@@ -477,6 +477,7 @@ async function dbFetchProducts() {
         const { data, error } = await state.supabaseClient
             .from('products')
             .select('*')
+            .order('price', { ascending: true })
             .order('name');
         if (error) throw error;
         if (data) {
@@ -492,7 +493,7 @@ async function dbFetchProducts() {
                 if (!initialProducts || initialProducts.length === 0) {
                     initialProducts = [...DEFAULT_PRODUCTS];
                 }
-                state.products = initialProducts;
+                state.products = initialProducts.sort((a, b) => (Number(a.price) - Number(b.price)) || a.name.localeCompare(b.name));
                 saveProductsToStorage(); // Triggers bulk upsert to Supabase
                 renderProductGrid();
                 renderInventoryTable();
@@ -500,8 +501,8 @@ async function dbFetchProducts() {
                 showToast('Catálogo de alfajores sincronizado en la nube', 'success');
                 return;
             }
-            // Keep local state in sync
-            state.products = data;
+            // Keep local state in sync and sorted by price ascending
+            state.products = data.sort((a, b) => (Number(a.price) - Number(b.price)) || a.name.localeCompare(b.name));
             renderProductGrid();
             renderInventoryTable();
             updateInventoryStats();
@@ -719,12 +720,14 @@ function removeToast(toast) {
 function renderProductGrid() {
     elements.productsGrid.innerHTML = '';
     
-    // Filter & Search logic
-    const filtered = state.products.filter(prod => {
-        const matchesCategory = state.categoryFilter === 'all' || prod.category === state.categoryFilter;
-        const matchesSearch = prod.name.toLowerCase().includes(state.searchQuery) || prod.id.includes(state.searchQuery);
-        return matchesCategory && matchesSearch;
-    });
+    // Filter, Search & Price Sort logic (De menor a mayor precio)
+    const filtered = state.products
+        .filter(prod => {
+            const matchesCategory = state.categoryFilter === 'all' || prod.category === state.categoryFilter;
+            const matchesSearch = prod.name.toLowerCase().includes(state.searchQuery) || prod.id.includes(state.searchQuery);
+            return matchesCategory && matchesSearch;
+        })
+        .sort((a, b) => (Number(a.price) - Number(b.price)) || a.name.localeCompare(b.name));
 
     if (filtered.length === 0) {
         elements.productsGrid.innerHTML = `
@@ -1270,7 +1273,9 @@ function renderInventoryTable() {
         return;
     }
 
-    state.products.forEach(product => {
+    const sortedProducts = [...state.products].sort((a, b) => (Number(a.price) - Number(b.price)) || a.name.localeCompare(b.name));
+    
+    sortedProducts.forEach(product => {
         const row = document.createElement('tr');
         
         let stockClass = 'text-success';

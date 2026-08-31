@@ -1584,16 +1584,20 @@ input:checked + .slider:before {
         font-size: 18px;
     }
     .nav-menu {
-        flex-direction: row;
-        overflow-x: auto;
-        padding-bottom: 8px;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 4px;
+        padding-bottom: 4px;
+        width: 100%;
     }
     .nav-item {
         white-space: nowrap;
-        padding: 8px 12px;
-        font-size: 13px;
-        gap: 8px;
+        padding: 8px 2px;
+        font-size: 11px;
+        gap: 4px;
+        justify-content: center;
+        text-align: center;
+        flex-direction: column;
     }
     .nav-item i {
         font-size: 14px;
@@ -1601,9 +1605,32 @@ input:checked + .slider:before {
     }
     .nav-item.active {
         border-left: none;
-        border-bottom: 3px solid var(--color-primary);
-        padding-left: 12px;
-        padding-bottom: 5px;
+        border-bottom: 2px solid var(--color-primary);
+        padding-left: 2px;
+        padding-bottom: 6px;
+    }
+    .history-actions {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        width: 100%;
+    }
+    .history-actions button {
+        justify-content: center;
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+    .period-buttons {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        width: 100%;
+    }
+    .filter-period-btn {
+        justify-content: center;
+        padding: 9px 6px;
+        font-size: 12px;
+        width: 100%;
     }
     .main-content {
         padding: 16px 16px 120px 16px; /* Generous bottom padding for safe scroll above browser bar */
