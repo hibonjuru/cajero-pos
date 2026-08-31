@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kuromi-pos-v5.5';
+const CACHE_NAME = 'kuromi-pos-v5.6';
 const ASSETS_TO_CACHE = [
   './',
   './index.html',

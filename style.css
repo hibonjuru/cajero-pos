@@ -1285,39 +1285,53 @@ tbody tr:hover {
     display: flex;
     align-items: center;
     gap: 8px;
+    color: var(--text-main);
 }
 
 .top-ranking-pills {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 6px;
-    background: rgba(11, 7, 19, 0.6);
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 4px;
+    background: rgba(18, 11, 31, 0.95);
     padding: 4px;
     border-radius: var(--border-radius-md);
     border: 1px solid var(--border-color);
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .ranking-pill-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    box-shadow: none !important;
+    outline: none;
+    color: var(--text-muted) !important;
     font-size: 12px;
     font-weight: 600;
-    padding: 7px 6px;
+    padding: 7px 2px;
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     text-align: center;
     transition: all var(--transition-fast);
+    white-space: nowrap;
+    width: 100%;
+    display: block;
 }
 
 .ranking-pill-btn:hover {
-    color: var(--text-main);
+    color: var(--text-main) !important;
 }
 
 .ranking-pill-btn.active {
-    background: linear-gradient(135deg, rgba(217, 70, 239, 0.25), rgba(139, 92, 246, 0.25));
-    color: var(--color-primary);
-    box-shadow: 0 0 10px rgba(217, 70, 239, 0.25);
+    background: linear-gradient(135deg, rgba(217, 70, 239, 0.35), rgba(139, 92, 246, 0.35)) !important;
+    background-color: rgba(217, 70, 239, 0.3) !important;
+    border: 1px solid var(--color-primary) !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 10px rgba(217, 70, 239, 0.35) !important;
     font-weight: 700;
 }
 
