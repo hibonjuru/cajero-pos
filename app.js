@@ -4,13 +4,13 @@ const DEFAULT_SUPABASE_KEY = 'sb_publishable_9SgN6k8wc1KBErom78TAkQ_jqTvvIat';
 
 // Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
 const DEFAULT_PRODUCTS = [
-    { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: '#3b82f6', promoQty: null, promoPrice: null },
-    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 25, category: 'snack', color: '#ef4444', promoQty: null, promoPrice: null },
-    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 700, stock: 20, category: 'snack', color: '#ec4899', promoQty: null, promoPrice: null },
-    { id: '4', name: 'Alfajor Oreo', price: 800, stock: 15, category: 'snack', color: '#ffffff', promoQty: null, promoPrice: null },
-    { id: '5', name: 'Alfajor Nutella', price: 800, stock: 15, category: 'snack', color: '#27272a', promoQty: null, promoPrice: null },
-    { id: '6', name: 'Alfajor Bon o Bon', price: 800, stock: 40, category: 'snack', color: '#f59e0b', promoQty: null, promoPrice: null },
-    { id: '7', name: 'Alfajor Prestigio', price: 800, stock: 20, category: 'snack', color: '#8b5cf6', promoQty: null, promoPrice: null }
+    { id: '1', name: 'Alfajor Tradicional', price: 700, stock: 10, category: 'snack', color: '#3b82f6', promoQty: 2, promoPrice: 1200 },
+    { id: '2', name: 'Alfajor Manjar Nuez', price: 700, stock: 10, category: 'snack', color: '#ef4444', promoQty: 2, promoPrice: 1200 },
+    { id: '3', name: 'Alfajor Mantequilla de Maní', price: 800, stock: 10, category: 'snack', color: '#ec4899', promoQty: 2, promoPrice: 1500 },
+    { id: '4', name: 'Alfajor Oreo', price: 900, stock: 8, category: 'snack', color: '#ffffff', promoQty: 2, promoPrice: 1600 },
+    { id: '5', name: 'Alfajor Nutella', price: 800, stock: 8, category: 'snack', color: '#27272a', promoQty: 2, promoPrice: 1500 },
+    { id: '6', name: 'Alfajor Bon o Bon', price: 900, stock: 9, category: 'snack', color: '#f59e0b', promoQty: 2, promoPrice: 1600 },
+    { id: '7', name: 'Alfajor Prestigio', price: 900, stock: 10, category: 'snack', color: '#8b5cf6', promoQty: 2, promoPrice: 1600 }
 ];
 
 // App State
@@ -1459,14 +1459,14 @@ function clearHistory() {
     }
 }
 
-// LOGIC: Export CSV
-function exportHistoryToCSV() {
+// LOGIC: Export CSV (Mobile & Desktop Compatible)
+async function exportHistoryToCSV() {
     if (state.salesHistory.length === 0) {
         showToast('No hay transacciones para exportar', 'warning');
         return;
     }
 
-    let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // Include BOM for proper Excel Spanish support
+    let csvContent = "\uFEFF"; // Include BOM for proper Excel Spanish support
     csvContent += "ID Transaccion,Fecha,Productos Vendidos,Metodo de Pago,Total Cobrado,Monto Recibido,Vuelto Entregado\r\n";
 
     state.salesHistory.forEach(tx => {
@@ -1479,10 +1479,10 @@ function exportHistoryToCSV() {
         const productsStr = tx.products.map(p => `${p.name} (x${p.quantity})`).join('; ');
         
         const row = [
-            tx.id,
+            `"${tx.id}"`,
             `"${formattedDate}"`,
-            `"${productsStr}"`,
-            tx.method === 'efectivo' ? 'Efectivo' : 'Transferencia',
+            `"${productsStr.replace(/"/g, '""')}"`,
+            `"${tx.method === 'efectivo' ? 'Efectivo' : 'Transferencia'}"`,
             tx.total,
             tx.paidAmount,
             tx.change
@@ -1491,17 +1491,47 @@ function exportHistoryToCSV() {
         csvContent += row + "\r\n";
     });
 
-    const encodedUri = encodeURI(csvContent);
+    const dateStr = new Date().toISOString().slice(0, 10);
+    const fileName = `historial_ventas_${dateStr}.csv`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+
+    // 1. Try Native Mobile Share Sheet if supported (iOS Safari / Android)
+    if (navigator.canShare) {
+        try {
+            const file = new File([blob], fileName, { type: 'text/csv' });
+            if (navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'Historial de Ventas',
+                    text: `Historial de ventas exportado - ${dateStr}`
+                });
+                showToast('Historial compartido/guardado con éxito', 'success');
+                return;
+            }
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                return; // User cancelled share dialog
+            }
+            console.warn('Share API error, falling back to download:', err);
+        }
+    }
+
+    // 2. Fallback to Blob ObjectURL download
+    const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    
-    // File name with date timestamp
-    const dateStr = new Date().toISOString().slice(0,10);
-    link.setAttribute("download", `historial_ventas_${dateStr}.csv`);
+    link.style.display = 'none';
+    link.href = url;
+    link.download = fileName;
+    link.target = '_blank';
     
     document.body.appendChild(link);
     link.click();
-    document.body.removeChild(link);
+    
+    setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+    }, 1000);
+    
     showToast('Historial exportado como CSV', 'success');
 }
 
