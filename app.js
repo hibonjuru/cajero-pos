@@ -20,6 +20,7 @@ let state = {
     salesHistory: [],
     currentTab: 'terminal',
     categoryFilter: 'all',
+    historyPeriod: 'week', // Default view: 'week', 'today', 'month', 'all'
     searchQuery: '',
     supabaseUrl: DEFAULT_SUPABASE_URL,
     supabaseKey: DEFAULT_SUPABASE_KEY,
@@ -45,7 +46,6 @@ const elements = {
     
     // Terminal Tab
     searchProduct: document.getElementById('search-product'),
-    categoryFilters: document.querySelectorAll('.filter-btn'),
     productsGrid: document.getElementById('products-grid'),
     cartItemsList: document.getElementById('cart-items-list'),
     checkoutTotal: document.getElementById('checkout-total'),
@@ -81,6 +81,8 @@ const elements = {
     historyTableBody: document.getElementById('history-table-body'),
     exportHistoryBtn: document.getElementById('export-history-btn'),
     clearHistoryBtn: document.getElementById('clear-history-btn'),
+    periodButtons: document.querySelectorAll('.filter-period-btn'),
+    exportPeriodLabel: document.getElementById('export-period-label'),
     metricTotalSales: document.getElementById('metric-total-sales'),
     metricCashSales: document.getElementById('metric-cash-sales'),
     metricCashCount: document.getElementById('metric-cash-count'),
@@ -231,15 +233,24 @@ function init() {
         });
     });
 
-    // Setup Category filters
-    elements.categoryFilters.forEach(btn => {
-        btn.addEventListener('click', () => {
-            elements.categoryFilters.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            state.categoryFilter = btn.getAttribute('data-category');
-            renderProductGrid();
+    // Setup History Period Filters
+    if (elements.periodButtons) {
+        elements.periodButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                elements.periodButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.historyPeriod = btn.getAttribute('data-period');
+                
+                const labels = { week: 'Semana', today: 'Hoy', month: 'Mes', all: 'Todo' };
+                if (elements.exportPeriodLabel) {
+                    elements.exportPeriodLabel.textContent = labels[state.historyPeriod] || 'Período';
+                }
+                
+                renderHistoryTable();
+                updateHistoryMetrics();
+            });
         });
-    });
+    }
 
     // Setup Search input
     elements.searchProduct.addEventListener('input', (e) => {
@@ -448,6 +459,15 @@ function init() {
     renderHistoryTable();
     updateInventoryStats();
     updateHistoryMetrics();
+
+    // Register Service Worker for PWA & Offline Support
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('./sw.js')
+                .then(reg => console.log('PWA Service Worker active:', reg.scope))
+                .catch(err => console.warn('Service Worker registration skipped:', err));
+        });
+    }
 }
 
 // Supabase DB Helpers
@@ -1428,22 +1448,52 @@ function deleteProduct(productId) {
     }
 }
 
+// Helper: Get sales history filtered by active time period
+function getFilteredHistory() {
+    if (state.historyPeriod === 'all') return state.salesHistory;
+
+    const now = new Date();
+    
+    if (state.historyPeriod === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        return state.salesHistory.filter(tx => new Date(tx.date) >= startOfToday);
+    }
+    
+    if (state.historyPeriod === 'week') {
+        // Monday as start of week in Latin America / standard
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0);
+        return state.salesHistory.filter(tx => new Date(tx.date) >= startOfWeek);
+    }
+    
+    if (state.historyPeriod === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        return state.salesHistory.filter(tx => new Date(tx.date) >= startOfMonth);
+    }
+
+    return state.salesHistory;
+}
+
 // RENDER: Transactions History Tab
 function renderHistoryTable() {
     elements.historyTableBody.innerHTML = '';
+    const filteredHistory = getFilteredHistory();
     
-    if (state.salesHistory.length === 0) {
+    if (filteredHistory.length === 0) {
+        const periodNames = { week: 'esta semana', today: 'hoy', month: 'este mes', all: 'el historial' };
+        const pName = periodNames[state.historyPeriod] || 'este período';
         elements.historyTableBody.innerHTML = `
             <tr>
                 <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px 10px;">
-                    Historial vacío. Registra tu primera venta en la terminal.
+                    No hay ventas registradas en ${pName}.
                 </td>
             </tr>
         `;
         return;
     }
 
-    state.salesHistory.forEach(tx => {
+    filteredHistory.forEach(tx => {
         const row = document.createElement('tr');
         
         // Format products listing
@@ -1498,7 +1548,9 @@ function updateHistoryMetrics() {
     let transferCount = 0;
     let cardCount = 0;
 
-    state.salesHistory.forEach(tx => {
+    const filteredHistory = getFilteredHistory();
+
+    filteredHistory.forEach(tx => {
         totalSales += tx.total;
         if (tx.method === 'efectivo') {
             cashSales += tx.total;
@@ -1519,7 +1571,7 @@ function updateHistoryMetrics() {
     if (elements.metricTransferCount) elements.metricTransferCount.textContent = `${transferCount} transferencia${transferCount === 1 ? '' : 's'}`;
     if (elements.metricCardSales) elements.metricCardSales.textContent = formatCurrency(cardSales);
     if (elements.metricCardCount) elements.metricCardCount.textContent = `${cardCount} tarjeta${cardCount === 1 ? '' : 's'}`;
-    if (elements.metricTransactionCount) elements.metricTransactionCount.textContent = state.salesHistory.length;
+    if (elements.metricTransactionCount) elements.metricTransactionCount.textContent = filteredHistory.length;
 }
 
 function clearHistory() {
@@ -1550,15 +1602,16 @@ function clearHistory() {
 
 // LOGIC: Export CSV (Mobile & Desktop Compatible)
 async function exportHistoryToCSV() {
-    if (state.salesHistory.length === 0) {
-        showToast('No hay transacciones para exportar', 'warning');
+    const filteredHistory = getFilteredHistory();
+    if (filteredHistory.length === 0) {
+        showToast('No hay transacciones para exportar en este período', 'warning');
         return;
     }
 
     let csvContent = "\uFEFF"; // Include BOM for proper Excel Spanish support
     csvContent += "ID Transaccion,Fecha,Productos Vendidos,Metodo de Pago,Total Cobrado,Monto Recibido,Vuelto Entregado\r\n";
 
-    state.salesHistory.forEach(tx => {
+    filteredHistory.forEach(tx => {
         const formattedDate = new Date(tx.date).toLocaleDateString('es-ES', {
             day: '2-digit', month: '2-digit', year: 'numeric',
             hour: '2-digit', minute: '2-digit'
@@ -1582,7 +1635,13 @@ async function exportHistoryToCSV() {
     });
 
     const dateStr = new Date().toISOString().slice(0, 10);
-    const fileName = `historial_ventas_${dateStr}.csv`;
+    const periodFilePrefix = {
+        week: `ventas_semana_${dateStr}`,
+        today: `ventas_hoy_${dateStr}`,
+        month: `ventas_mes_${dateStr.slice(0, 7)}`,
+        all: `ventas_total_${dateStr}`
+    };
+    const fileName = `${periodFilePrefix[state.historyPeriod] || `ventas_${dateStr}`}.csv`;
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 
     // 1. Try Native Mobile Share Sheet if supported (iOS Safari / Android)

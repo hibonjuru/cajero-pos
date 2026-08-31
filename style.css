@@ -1180,6 +1180,34 @@ tbody tr:hover {
     background-color: rgba(244, 63, 94, 0.1);
 }
 
+/* Period Filter Buttons in History */
+.filter-period-btn {
+    background-color: var(--bg-sidebar);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: var(--border-radius-md);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all var(--transition-fast);
+}
+
+.filter-period-btn:hover {
+    border-color: var(--color-primary);
+    color: var(--text-main);
+}
+
+.filter-period-btn.active {
+    background: linear-gradient(135deg, rgba(217, 70, 239, 0.2), rgba(139, 92, 246, 0.2));
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    box-shadow: 0 0 12px rgba(217, 70, 239, 0.25);
+}
+
 /* Sales Metrics Dashboard */
 .sales-metrics {
     display: grid;

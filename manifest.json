@@ -1,0 +1,19 @@
+{
+  "name": "Kuromi POS - Alfajores",
+  "short_name": "Kuromi POS",
+  "description": "Sistema de punto de venta e inventario para pyme de alfajores",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0713",
+  "theme_color": "#120b1f",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

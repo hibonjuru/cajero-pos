@@ -12,6 +12,8 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Kuromi POS">
+    <meta name="theme-color" content="#120b1f">
+    <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
     <link rel="icon" type="image/png" href="apple-touch-icon.png">
     <!-- Supabase JS Client SDK -->
@@ -323,17 +325,35 @@
             <!-- Tab Content: HISTORY -->
             <section id="tab-history" class="tab-panel">
                 <div class="glass-panel p-4 h-full flex-col">
-                    <div class="card-header border-none">
-                        <div>
-                            <h3><i class="fa-solid fa-receipt text-primary"></i> Registro de Transacciones</h3>
-                            <p class="text-muted text-small mt-1">Historial acumulado de ventas realizadas en el cajero</p>
+                    <div class="card-header border-none" style="flex-direction: column; align-items: stretch; gap: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                            <div>
+                                <h3><i class="fa-solid fa-receipt text-primary"></i> Registro de Transacciones</h3>
+                                <p class="text-muted text-small mt-1">Historial acumulado de ventas realizadas en el cajero</p>
+                            </div>
+                            <div class="history-actions" style="display: flex; gap: 8px;">
+                                <button id="export-history-btn" class="btn-secondary" title="Exportar historial del período">
+                                    <i class="fa-solid fa-file-export"></i> Exportar CSV (<span id="export-period-label">Semana</span>)
+                                </button>
+                                <button id="clear-history-btn" class="btn-danger" title="Borrar historial">
+                                    <i class="fa-solid fa-trash-arrow-up"></i> Borrar Todo
+                                </button>
+                            </div>
                         </div>
-                        <div class="history-actions">
-                            <button id="export-history-btn" class="btn-secondary" title="Exportar historial">
-                                <i class="fa-solid fa-file-export"></i> Exportar CSV
+
+                        <!-- Period Filter Controls -->
+                        <div class="period-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="filter-period-btn active" data-period="week">
+                                <i class="fa-solid fa-calendar-week"></i> Esta Semana
                             </button>
-                            <button id="clear-history-btn" class="btn-danger" title="Borrar historial">
-                                <i class="fa-solid fa-trash-arrow-up"></i> Borrar Todo
+                            <button class="filter-period-btn" data-period="today">
+                                <i class="fa-solid fa-calendar-day"></i> Hoy
+                            </button>
+                            <button class="filter-period-btn" data-period="month">
+                                <i class="fa-solid fa-calendar-days"></i> Este Mes
+                            </button>
+                            <button class="filter-period-btn" data-period="all">
+                                <i class="fa-solid fa-list-check"></i> Todo el Historial
                             </button>
                         </div>
                     </div>
@@ -527,6 +547,6 @@ create policy "Public Access" on sales_history for all using (true) with check (
     </div>
 
     <!-- Main Logic Script -->
-    <script src="app.js?v=5.0"></script>
+    <script src="app.js?v=5.1"></script>
 </body>
 </html>
