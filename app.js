@@ -1,3 +1,7 @@
+// Default Supabase Cloud Database Configuration
+const DEFAULT_SUPABASE_URL = 'https://lximlzqogseokaepdbuc.supabase.co';
+const DEFAULT_SUPABASE_KEY = 'sb_publishable_9SgN6k8wc1KBErom78TAkQ_jqTvvIat';
+
 // Initial product seeding if localStorage is empty (Menú de Alfajores Artesanales)
 const DEFAULT_PRODUCTS = [
     { id: '1', name: 'Alfajor Tradicional', price: 600, stock: 30, category: 'snack', color: '#3b82f6', promoQty: null, promoPrice: null },
@@ -17,8 +21,8 @@ let state = {
     currentTab: 'terminal',
     categoryFilter: 'all',
     searchQuery: '',
-    supabaseUrl: '',
-    supabaseKey: '',
+    supabaseUrl: DEFAULT_SUPABASE_URL,
+    supabaseKey: DEFAULT_SUPABASE_KEY,
     isSupabaseConnected: false,
     supabaseClient: null
 };
@@ -123,9 +127,9 @@ function init() {
     updateDateTimeDisplay();
     setInterval(updateDateTimeDisplay, 60000); // Update time display every minute
 
-    // Load cloud connection settings
-    state.supabaseUrl = localStorage.getItem('pos_sb_url') || '';
-    state.supabaseKey = localStorage.getItem('pos_sb_key') || '';
+    // Load cloud connection settings (defaults to pre-configured Supabase project)
+    state.supabaseUrl = localStorage.getItem('pos_sb_url') || DEFAULT_SUPABASE_URL;
+    state.supabaseKey = localStorage.getItem('pos_sb_key') || DEFAULT_SUPABASE_KEY;
 
     // Initialize Supabase Client
     if (state.supabaseUrl && state.supabaseKey) {
@@ -435,20 +439,24 @@ async function dbFetchProducts() {
         if (error) throw error;
         if (data) {
             if (data.length === 0) {
-                // Supabase database is empty. Migrate local products to cloud!
+                // Supabase database is empty. Migrate local products or seed defaults to cloud!
                 const storedProducts = localStorage.getItem('pos_products');
+                let initialProducts = [];
                 if (storedProducts) {
-                    const localProducts = JSON.parse(storedProducts);
-                    if (localProducts.length > 0) {
-                        state.products = localProducts;
-                        saveProductsToStorage(); // Triggers bulk upsert to Supabase
-                        renderProductGrid();
-                        renderInventoryTable();
-                        updateInventoryStats();
-                        showToast('Productos locales migrados a la nube automáticamente', 'success');
-                        return;
-                    }
+                    try {
+                        initialProducts = JSON.parse(storedProducts);
+                    } catch (e) {}
                 }
+                if (!initialProducts || initialProducts.length === 0) {
+                    initialProducts = [...DEFAULT_PRODUCTS];
+                }
+                state.products = initialProducts;
+                saveProductsToStorage(); // Triggers bulk upsert to Supabase
+                renderProductGrid();
+                renderInventoryTable();
+                updateInventoryStats();
+                showToast('Catálogo de alfajores sincronizado en la nube', 'success');
+                return;
             }
             // Keep local state in sync
             state.products = data;
