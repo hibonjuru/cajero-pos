@@ -1572,6 +1572,89 @@ function updateHistoryMetrics() {
     if (elements.metricCardSales) elements.metricCardSales.textContent = formatCurrency(cardSales);
     if (elements.metricCardCount) elements.metricCardCount.textContent = `${cardCount} tarjeta${cardCount === 1 ? '' : 's'}`;
     if (elements.metricTransactionCount) elements.metricTransactionCount.textContent = filteredHistory.length;
+
+    // Also update top selling products ranking for this period
+    updateTopProductsRanking();
+}
+
+// LOGIC: Calculate and render top selling products ranking for active period
+function updateTopProductsRanking() {
+    const topProductsList = document.getElementById('top-products-list');
+    const topPeriodLabel = document.getElementById('top-products-period-label');
+    const topTotalUnits = document.getElementById('top-products-total-units');
+    if (!topProductsList) return;
+
+    const periodLabels = { week: 'Esta Semana', today: 'Hoy', month: 'Este Mes', all: 'Todo el Historial' };
+    if (topPeriodLabel) topPeriodLabel.textContent = periodLabels[state.historyPeriod] || 'Este Período';
+
+    const filtered = getFilteredHistory();
+    const productStats = {};
+    let totalUnits = 0;
+
+    filtered.forEach(tx => {
+        if (Array.isArray(tx.products)) {
+            tx.products.forEach(p => {
+                const name = p.name || 'Producto';
+                const qty = parseInt(p.quantity, 10) || 0;
+                const price = parseFloat(p.price) || 0;
+                totalUnits += qty;
+
+                if (!productStats[name]) {
+                    const match = state.products.find(prod => prod.id === p.id || prod.name === name);
+                    productStats[name] = {
+                        name: name,
+                        quantity: 0,
+                        revenue: 0,
+                        color: match ? match.color : '#d946ef'
+                    };
+                }
+                productStats[name].quantity += qty;
+                productStats[name].revenue += (qty * price);
+            });
+        }
+    });
+
+    if (topTotalUnits) {
+        topTotalUnits.textContent = `${totalUnits} unidad${totalUnits === 1 ? '' : 'es'} vendida${totalUnits === 1 ? '' : 's'}`;
+    }
+
+    const sortedProducts = Object.values(productStats).sort((a, b) => b.quantity - a.quantity);
+
+    if (sortedProducts.length === 0) {
+        topProductsList.innerHTML = `
+            <div style="grid-column: 1 / -1; text-align: center; color: var(--text-muted); padding: 18px; font-size: 13px;">
+                No hay ventas de productos registradas en este período.
+            </div>
+        `;
+        return;
+    }
+
+    const maxQty = sortedProducts[0].quantity || 1;
+
+    topProductsList.innerHTML = sortedProducts.map((prod, index) => {
+        const percentage = Math.max(10, Math.round((prod.quantity / maxQty) * 100));
+        const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `#${index + 1}`;
+        const unitShare = totalUnits > 0 ? Math.round((prod.quantity / totalUnits) * 100) : 0;
+        
+        return `
+            <div class="top-product-card">
+                <div class="top-product-info">
+                    <div style="display: flex; align-items: center; min-width: 0; gap: 6px;">
+                        <span style="font-size: 14px; font-weight: 700; min-width: 22px;">${medal}</span>
+                        <span class="top-product-name" title="${prod.name}">${prod.name}</span>
+                    </div>
+                    <span class="top-product-units">${prod.quantity} <span style="font-size: 11px; color: var(--text-muted); font-weight: 500;">un.</span></span>
+                </div>
+                <div class="top-product-bar-wrapper">
+                    <div class="top-product-bar" style="width: ${percentage}%; background: ${prod.color || 'var(--color-primary)'};"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted);">
+                    <span>${formatCurrency(prod.revenue)}</span>
+                    <span>${unitShare}% del volumen</span>
+                </div>
+            </div>
+        `;
+    }).join('');
 }
 
 function clearHistory() {
