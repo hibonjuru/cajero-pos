@@ -543,39 +543,8 @@ async function dbFetchHistory() {
             .order('date', { ascending: false });
         if (error) throw error;
         if (data) {
-            if (data.length === 0) {
-                // Supabase table is empty. Migrate local history to cloud!
-                const storedHistory = localStorage.getItem('pos_history');
-                if (storedHistory) {
-                    const localHistory = JSON.parse(storedHistory);
-                    if (localHistory.length > 0) {
-                        state.salesHistory = localHistory;
-                        state.supabaseClient
-                            .from('sales_history')
-                            .insert(localHistory.map(tx => ({
-                                id: tx.id,
-                                date: tx.date,
-                                products: tx.products,
-                                method: tx.method,
-                                total: tx.total,
-                                discount: tx.discount,
-                                paidAmount: tx.paidAmount,
-                                change: tx.change
-                            })))
-                            .then(({ error: migrationError }) => {
-                                if (migrationError) {
-                                    console.error('Error migrating local history to cloud:', migrationError);
-                                }
-                            });
-                        
-                        renderHistoryTable();
-                        updateHistoryMetrics();
-                        showToast('Historial local migrado a la nube automáticamente', 'success');
-                        return;
-                    }
-                }
-            }
             state.salesHistory = data;
+            localStorage.setItem('pos_history', JSON.stringify(data));
             renderHistoryTable();
             updateHistoryMetrics();
         }
@@ -1697,29 +1666,42 @@ function updateTopProductsRanking() {
     }).join('');
 }
 
-function clearHistory() {
+async function clearHistory() {
     if (state.salesHistory.length === 0) return;
 
     if (confirm('¿Estás seguro de que deseas borrar todo el historial de transacciones? Esta acción no se puede deshacer.')) {
         state.salesHistory = [];
-        saveHistoryToStorage();
+        localStorage.setItem('pos_history', JSON.stringify([]));
         
         if (state.isSupabaseConnected && state.supabaseClient) {
-            state.supabaseClient
-                .from('sales_history')
-                .delete()
-                .neq('id', 'placeholder')
-                .then(({ error }) => {
+            try {
+                // Try RPC first for unrestricted atomic clear, fallback to direct delete
+                const { error: rpcErr } = await state.supabaseClient.rpc('clear_sales_history');
+                if (rpcErr) {
+                    const { error } = await state.supabaseClient
+                        .from('sales_history')
+                        .delete()
+                        .not('id', 'is', null);
+
                     if (error) {
                         console.error('Error clearing history in Supabase:', error);
-                        showToast('Error al borrar historial en la nube', 'error');
+                        showToast(`Error al borrar en la nube: ${error.message}`, 'error');
+                    } else {
+                        showToast('Historial borrado con éxito', 'success');
                     }
-                });
+                } else {
+                    showToast('Historial borrado con éxito en todos los dispositivos', 'success');
+                }
+            } catch (err) {
+                console.error('Error in clearHistory:', err);
+                showToast('Error de conexión al borrar historial', 'error');
+            }
+        } else {
+            showToast('Historial local borrado', 'success');
         }
 
         renderHistoryTable();
         updateHistoryMetrics();
-        showToast('Historial borrado con éxito', 'success');
     }
 }
 
