@@ -21,6 +21,7 @@ let state = {
     currentTab: 'terminal',
     categoryFilter: 'all',
     historyPeriod: 'week', // Default view: 'week', 'today', 'month', 'all'
+    rankingPeriod: 'week', // Quick toggle for Top Products widget
     searchQuery: '',
     supabaseUrl: DEFAULT_SUPABASE_URL,
     supabaseKey: DEFAULT_SUPABASE_KEY,
@@ -240,14 +241,35 @@ function init() {
                 elements.periodButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 state.historyPeriod = btn.getAttribute('data-period');
+                state.rankingPeriod = state.historyPeriod;
                 
-                const labels = { week: 'Semana', today: 'Hoy', month: 'Mes', all: 'Todo' };
-                if (elements.exportPeriodLabel) {
-                    elements.exportPeriodLabel.textContent = labels[state.historyPeriod] || 'Período';
+                // Sync ranking mini pills
+                const rankingPills = document.querySelectorAll('.ranking-pill-btn');
+                if (rankingPills) {
+                    rankingPills.forEach(rp => {
+                        if (rp.getAttribute('data-ranking-period') === state.rankingPeriod) {
+                            rp.classList.add('active');
+                        } else {
+                            rp.classList.remove('active');
+                        }
+                    });
                 }
                 
                 renderHistoryTable();
                 updateHistoryMetrics();
+            });
+        });
+    }
+
+    // Setup Top Ranking Mini Switcher
+    const rankingPills = document.querySelectorAll('.ranking-pill-btn');
+    if (rankingPills) {
+        rankingPills.forEach(btn => {
+            btn.addEventListener('click', () => {
+                rankingPills.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.rankingPeriod = btn.getAttribute('data-ranking-period');
+                updateTopProductsRanking();
             });
         });
     }
@@ -1585,14 +1607,27 @@ function updateHistoryMetrics() {
 // LOGIC: Calculate and render top selling products ranking for active period
 function updateTopProductsRanking() {
     const topProductsList = document.getElementById('top-products-list');
-    const topPeriodLabel = document.getElementById('top-products-period-label');
     const topTotalUnits = document.getElementById('top-products-total-units');
     if (!topProductsList) return;
 
-    const periodLabels = { week: 'Esta Semana', today: 'Hoy', month: 'Este Mes', all: 'Todo el Historial' };
-    if (topPeriodLabel) topPeriodLabel.textContent = periodLabels[state.historyPeriod] || 'Este Período';
+    const currentRankingPeriod = state.rankingPeriod || state.historyPeriod || 'week';
+    
+    // Filter history for the ranking period
+    let filtered = state.salesHistory;
+    const now = new Date();
+    if (currentRankingPeriod === 'today') {
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+        filtered = state.salesHistory.filter(tx => new Date(tx.date) >= startOfToday);
+    } else if (currentRankingPeriod === 'week') {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const startOfWeek = new Date(now.getFullYear(), now.getMonth(), diff, 0, 0, 0);
+        filtered = state.salesHistory.filter(tx => new Date(tx.date) >= startOfWeek);
+    } else if (currentRankingPeriod === 'month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+        filtered = state.salesHistory.filter(tx => new Date(tx.date) >= startOfMonth);
+    }
 
-    const filtered = getFilteredHistory();
     const productStats = {};
     let totalUnits = 0;
 
